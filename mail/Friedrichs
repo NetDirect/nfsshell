@@ -1,0 +1,47 @@
+(Message inbox:4042)
+
+Date:    Tue, 19 May 1998 12:22:57 MDT
+To:      BUGTRAQ@NETSPACE.ORG
+From:    Oliver Friedrichs <oliver@SECURENETWORKS.COM>
+Subject: Re: NFS shell
+
+Return-Path: leendert@cs.vu.nl
+Delivery-Date: Tue May 19 14:43:22 1998
+Return-Path: <leendert@cs.vu.nl>
+Resent-From: leendert@cs.vu.nl
+Resent-Message-Id: <m0ybrLz-00001kC@top.cs.vu.nl>
+Approved-By: aleph1@NATIONWIDE.NET
+X-Sender: oliver@silence.secnet.com
+MIME-Version: 1.0
+Reply-To: Oliver Friedrichs <oliver@SECURENETWORKS.COM>
+Sender:  Bugtraq List <BUGTRAQ@NETSPACE.ORG>
+X-To:    Leendert van Doorn <leendert@CS.VU.NL>
+In-Reply-To: <m0ybTx1-000eCgC@fluit.cs.vu.nl>
+Resent-To: leendert@watson.ibm.com
+Resent-Date: Tue, 19 May 98 20:43 +0200
+Content-Length: 952
+
+> The sources are in:
+>
+>         ftp://ftp.cs.vu.nl/pub/leendert/nfsshell.tar.gz
+>
+> Suggestions for improvements are welcome.
+
+Some interesting features that people will probably want to add to this:
+
+- ability to query rpcbind/portmap on port 32771.  rpcbind on (unpatched)
+  solaris listened on a port equal to, or above 32771.  This allows you to
+  bypass any filters that may be blocking standard portmap/rpcbind on port
+  111.
+
+- ability to perform NFS over port 4045.  Solaris nlockmgr service will
+  accept any NFS packets and always listens on port 4045, probably because
+  it's a direct path into the kernel like NFS is.  This allows you to
+  bypass any filters that may be blocking NFS traffic on port 2049.
+
+Just 2 of a number of undocumented services that we found in Solaris...
+
+- Oliver
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      Network Associates, Inc. 2805 Bowers Ave, Santa Clara, CA, 95051
