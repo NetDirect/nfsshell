@@ -1,9 +1,10 @@
 #
 # Makefile
 #
-# Copyright (c) 1990..1998 by Leendert van Doorn <leendert@cs.vu.nl>
-# All rights reserved.
-#
+# 
+# Copyright (c) 1990-1998 by Leendert van Doorn <leendert@paramecium.org>
+# Copyright (c) 2013 by Michael Brown, Net Direct <michael@netdirect.ca>
+# 
 # For solaris 2.x you need
 #	CFLAGS=-DSYSV
 #	LIBS=-lsocket -L/usr/ucblib -R/usr/ucblib -lrpcsoc -lnsl
@@ -40,23 +41,19 @@ LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
 RPCGEN		= rpcgen
 RGFLAGS		= -C
 
-NFS_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfs.o
-NFST_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfs-truncmod.o
+NFS_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfsshell.o
 STEAL_OBJECTS	= steal.o nfs_prot_clnt.o nfs_prot_xdr.o
 RPCGEN_MOUNT	= mount.h mount_clnt.c mount_svc.c mount_xdr.c
 RPCGEN_NFS_PROT	= nfs_prot.h nfs_prot_clnt.c nfs_prot_svc.c nfs_prot_xdr.c
 
-nfs:	$(NFS_OBJECTS)
-	$(CC) -g -o nfs $(NFS_OBJECTS) $(LIBS)
-
-nfs-truncmod:	$(NFST_OBJECTS) nfs-truncmod.c
-	$(CC) -g -o nfs-truncmod $(NFST_OBJECTS) $(LIBS)
+nfsshell:	$(NFS_OBJECTS)
+	$(CC) -g -o nfsshell $(NFS_OBJECTS) $(LIBS)
 
 steal:	$(STEAL_OBJECTS)
 	$(CC) -g -o steal $(STEAL_OBJECTS) $(LIBS)
 
 lint-nfs:
-	lint nfs.c mount_clnt.c mount_xdr.c
+	lint nfsshell.c mount_clnt.c mount_xdr.c
 
 lint-steal:
 	lint steal.c nfs_prot_clnt.c nfs_prot_xdr.c
@@ -66,7 +63,7 @@ tar: clean
 	 uuencode nfsshell.tar.gz < nfsshell.tar.gz > nfsshell.tar.gz.uue)
 
 clean:
-	rm -f nfs steal $(NFS_OBJECTS) $(STEAL_OBJECTS)
+	rm -f nfsshell steal $(NFS_OBJECTS) $(STEAL_OBJECTS)
 
 clobber: clean
 	rm -f $(RPCGEN_MOUNT) $(RPCGEN_NFS_PROT)
