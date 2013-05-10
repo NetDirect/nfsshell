@@ -5,324 +5,288 @@
 
 #include "nfs_prot.h"
 #include <stdio.h>
-#include <stdlib.h> /* getenv, exit */
-#include <rpc/pmap_clnt.h> /* for pmap_unset */
-#include <string.h> /* strcmp */
-#include <signal.h>
-#ifdef __cplusplus
-#include <sysent.h> /* getdtablesize, open */
-#endif /* __cplusplus */
-#include <unistd.h> /* setsid */
-#include <sys/types.h>
+#include <stdlib.h>
+#include <rpc/pmap_clnt.h>
+#include <string.h>
 #include <memory.h>
-#include <stropts.h>
-#include <netconfig.h>
-#include <sys/resource.h> /* rlimit */
-#include <syslog.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #ifndef SIG_PF
-#define	SIG_PF void(*)(int)
+#define SIG_PF void(*)(int)
 #endif
-
-#ifdef DEBUG
-#define	RPC_SVC_FG
-#endif
-
-#define	_RPCSVC_CLOSEDOWN 120
-static int _rpcpmstart;		/* Started by a port monitor ? */
-
-/* States a server can be in wrt request */
-
-#define	_IDLE 0
-#define	_SERVED 1
-
-static int _rpcsvcstate = _IDLE;	/* Set when a request is serviced */
-static int _rpcsvccount = 0;		/* Number of requests being serviced */
-
-static
-void _msgout(char* msg)
-{
-#ifdef RPC_SVC_FG
-	if (_rpcpmstart)
-		syslog(LOG_ERR, msg);
-	else
-		(void) fprintf(stderr, "%s\n", msg);
-#else
-	syslog(LOG_ERR, msg);
-#endif
-}
 
 static void
-closedown(int sig)
-{
-	if (_rpcsvcstate == _IDLE && _rpcsvccount == 0) {
-		extern fd_set svc_fdset;
-		static int size;
-		int i, openfd;
-		struct t_info tinfo;
-
-		if (!t_getinfo(0, &tinfo) && (tinfo.servtype == T_CLTS))
-			exit(0);
-		if (size == 0) {
-			struct rlimit rl;
-
-			rl.rlim_max = 0;
-			getrlimit(RLIMIT_NOFILE, &rl);
-			if ((size = rl.rlim_max) == 0) {
-				return;
-			}
-		}
-		for (i = 0, openfd = 0; i < size && openfd < 2; i++)
-			if (FD_ISSET(i, &svc_fdset))
-				openfd++;
-		if (openfd <= 1)
-			exit(0);
-	} else
-		_rpcsvcstate = _IDLE;
-
-	(void) signal(SIGALRM, (SIG_PF) closedown);
-	(void) alarm(_RPCSVC_CLOSEDOWN/2);
-}
-
-static void
-nfs_program_2(struct svc_req *rqstp, register SVCXPRT *transp)
+nfs_program_3(struct svc_req *rqstp, register SVCXPRT *transp)
 {
 	union {
-		nfs_fh nfsproc_getattr_2_arg;
-		sattrargs nfsproc_setattr_2_arg;
-		diropargs nfsproc_lookup_2_arg;
-		nfs_fh nfsproc_readlink_2_arg;
-		readargs nfsproc_read_2_arg;
-		writeargs nfsproc_write_2_arg;
-		createargs nfsproc_create_2_arg;
-		diropargs nfsproc_remove_2_arg;
-		renameargs nfsproc_rename_2_arg;
-		linkargs nfsproc_link_2_arg;
-		symlinkargs nfsproc_symlink_2_arg;
-		createargs nfsproc_mkdir_2_arg;
-		diropargs nfsproc_rmdir_2_arg;
-		readdirargs nfsproc_readdir_2_arg;
-		nfs_fh nfsproc_statfs_2_arg;
+		GETATTR3args nfs3_getattr_3_arg;
+		SETATTR3args nfs3_setattr_3_arg;
+		LOOKUP3args nfs3_lookup_3_arg;
+		ACCESS3args nfs3_access_3_arg;
+		READLINK3args nfs3_readlink_3_arg;
+		READ3args nfs3_read_3_arg;
+		WRITE3args nfs3_write_3_arg;
+		CREATE3args nfs3_create_3_arg;
+		MKDIR3args nfs3_mkdir_3_arg;
+		SYMLINK3args nfs3_symlink_3_arg;
+		MKNOD3args nfs3_mknod_3_arg;
+		REMOVE3args nfs3_remove_3_arg;
+		RMDIR3args nfs3_rmdir_3_arg;
+		RENAME3args nfs3_rename_3_arg;
+		LINK3args nfs3_link_3_arg;
+		READDIR3args nfs3_readdir_3_arg;
+		READDIRPLUS3args nfs3_readdirplus_3_arg;
+		FSSTAT3args nfs3_fsstat_3_arg;
+		FSINFO3args nfs3_fsinfo_3_arg;
+		PATHCONF3args nfs3_pathconf_3_arg;
+		COMMIT3args nfs3_commit_3_arg;
 	} argument;
 	char *result;
 	xdrproc_t _xdr_argument, _xdr_result;
 	char *(*local)(char *, struct svc_req *);
 
-	_rpcsvccount++;
 	switch (rqstp->rq_proc) {
-	case NFSPROC_NULL:
+	case NFS3_NULL:
 		_xdr_argument = (xdrproc_t) xdr_void;
 		_xdr_result = (xdrproc_t) xdr_void;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_null_2_svc;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_null_3_svc;
 		break;
 
-	case NFSPROC_GETATTR:
-		_xdr_argument = (xdrproc_t) xdr_nfs_fh;
-		_xdr_result = (xdrproc_t) xdr_attrstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_getattr_2_svc;
+	case NFS3_GETATTR:
+		_xdr_argument = (xdrproc_t) xdr_GETATTR3args;
+		_xdr_result = (xdrproc_t) xdr_GETATTR3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_getattr_3_svc;
 		break;
 
-	case NFSPROC_SETATTR:
-		_xdr_argument = (xdrproc_t) xdr_sattrargs;
-		_xdr_result = (xdrproc_t) xdr_attrstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_setattr_2_svc;
+	case NFS3_SETATTR:
+		_xdr_argument = (xdrproc_t) xdr_SETATTR3args;
+		_xdr_result = (xdrproc_t) xdr_SETATTR3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_setattr_3_svc;
 		break;
 
-	case NFSPROC_ROOT:
-		_xdr_argument = (xdrproc_t) xdr_void;
-		_xdr_result = (xdrproc_t) xdr_void;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_root_2_svc;
+	case NFS3_LOOKUP:
+		_xdr_argument = (xdrproc_t) xdr_LOOKUP3args;
+		_xdr_result = (xdrproc_t) xdr_LOOKUP3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_lookup_3_svc;
 		break;
 
-	case NFSPROC_LOOKUP:
-		_xdr_argument = (xdrproc_t) xdr_diropargs;
-		_xdr_result = (xdrproc_t) xdr_diropres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_lookup_2_svc;
+	case NFS3_ACCESS:
+		_xdr_argument = (xdrproc_t) xdr_ACCESS3args;
+		_xdr_result = (xdrproc_t) xdr_ACCESS3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_access_3_svc;
 		break;
 
-	case NFSPROC_READLINK:
-		_xdr_argument = (xdrproc_t) xdr_nfs_fh;
-		_xdr_result = (xdrproc_t) xdr_readlinkres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_readlink_2_svc;
+	case NFS3_READLINK:
+		_xdr_argument = (xdrproc_t) xdr_READLINK3args;
+		_xdr_result = (xdrproc_t) xdr_READLINK3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_readlink_3_svc;
 		break;
 
-	case NFSPROC_READ:
-		_xdr_argument = (xdrproc_t) xdr_readargs;
-		_xdr_result = (xdrproc_t) xdr_readres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_read_2_svc;
+	case NFS3_READ:
+		_xdr_argument = (xdrproc_t) xdr_READ3args;
+		_xdr_result = (xdrproc_t) xdr_READ3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_read_3_svc;
 		break;
 
-	case NFSPROC_WRITECACHE:
-		_xdr_argument = (xdrproc_t) xdr_void;
-		_xdr_result = (xdrproc_t) xdr_void;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_writecache_2_svc;
+	case NFS3_WRITE:
+		_xdr_argument = (xdrproc_t) xdr_WRITE3args;
+		_xdr_result = (xdrproc_t) xdr_WRITE3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_write_3_svc;
 		break;
 
-	case NFSPROC_WRITE:
-		_xdr_argument = (xdrproc_t) xdr_writeargs;
-		_xdr_result = (xdrproc_t) xdr_attrstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_write_2_svc;
+	case NFS3_CREATE:
+		_xdr_argument = (xdrproc_t) xdr_CREATE3args;
+		_xdr_result = (xdrproc_t) xdr_CREATE3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_create_3_svc;
 		break;
 
-	case NFSPROC_CREATE:
-		_xdr_argument = (xdrproc_t) xdr_createargs;
-		_xdr_result = (xdrproc_t) xdr_diropres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_create_2_svc;
+	case NFS3_MKDIR:
+		_xdr_argument = (xdrproc_t) xdr_MKDIR3args;
+		_xdr_result = (xdrproc_t) xdr_MKDIR3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_mkdir_3_svc;
 		break;
 
-	case NFSPROC_REMOVE:
-		_xdr_argument = (xdrproc_t) xdr_diropargs;
-		_xdr_result = (xdrproc_t) xdr_nfsstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_remove_2_svc;
+	case NFS3_SYMLINK:
+		_xdr_argument = (xdrproc_t) xdr_SYMLINK3args;
+		_xdr_result = (xdrproc_t) xdr_SYMLINK3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_symlink_3_svc;
 		break;
 
-	case NFSPROC_RENAME:
-		_xdr_argument = (xdrproc_t) xdr_renameargs;
-		_xdr_result = (xdrproc_t) xdr_nfsstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_rename_2_svc;
+	case NFS3_MKNOD:
+		_xdr_argument = (xdrproc_t) xdr_MKNOD3args;
+		_xdr_result = (xdrproc_t) xdr_MKNOD3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_mknod_3_svc;
 		break;
 
-	case NFSPROC_LINK:
-		_xdr_argument = (xdrproc_t) xdr_linkargs;
-		_xdr_result = (xdrproc_t) xdr_nfsstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_link_2_svc;
+	case NFS3_REMOVE:
+		_xdr_argument = (xdrproc_t) xdr_REMOVE3args;
+		_xdr_result = (xdrproc_t) xdr_REMOVE3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_remove_3_svc;
 		break;
 
-	case NFSPROC_SYMLINK:
-		_xdr_argument = (xdrproc_t) xdr_symlinkargs;
-		_xdr_result = (xdrproc_t) xdr_nfsstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_symlink_2_svc;
+	case NFS3_RMDIR:
+		_xdr_argument = (xdrproc_t) xdr_RMDIR3args;
+		_xdr_result = (xdrproc_t) xdr_RMDIR3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_rmdir_3_svc;
 		break;
 
-	case NFSPROC_MKDIR:
-		_xdr_argument = (xdrproc_t) xdr_createargs;
-		_xdr_result = (xdrproc_t) xdr_diropres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_mkdir_2_svc;
+	case NFS3_RENAME:
+		_xdr_argument = (xdrproc_t) xdr_RENAME3args;
+		_xdr_result = (xdrproc_t) xdr_RENAME3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_rename_3_svc;
 		break;
 
-	case NFSPROC_RMDIR:
-		_xdr_argument = (xdrproc_t) xdr_diropargs;
-		_xdr_result = (xdrproc_t) xdr_nfsstat;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_rmdir_2_svc;
+	case NFS3_LINK:
+		_xdr_argument = (xdrproc_t) xdr_LINK3args;
+		_xdr_result = (xdrproc_t) xdr_LINK3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_link_3_svc;
 		break;
 
-	case NFSPROC_READDIR:
-		_xdr_argument = (xdrproc_t) xdr_readdirargs;
-		_xdr_result = (xdrproc_t) xdr_readdirres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_readdir_2_svc;
+	case NFS3_READDIR:
+		_xdr_argument = (xdrproc_t) xdr_READDIR3args;
+		_xdr_result = (xdrproc_t) xdr_READDIR3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_readdir_3_svc;
 		break;
 
-	case NFSPROC_STATFS:
-		_xdr_argument = (xdrproc_t) xdr_nfs_fh;
-		_xdr_result = (xdrproc_t) xdr_statfsres;
-		local = (char *(*)(char *, struct svc_req *)) nfsproc_statfs_2_svc;
+	case NFS3_READDIRPLUS:
+		_xdr_argument = (xdrproc_t) xdr_READDIRPLUS3args;
+		_xdr_result = (xdrproc_t) xdr_READDIRPLUS3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_readdirplus_3_svc;
+		break;
+
+	case NFS3_FSSTAT:
+		_xdr_argument = (xdrproc_t) xdr_FSSTAT3args;
+		_xdr_result = (xdrproc_t) xdr_FSSTAT3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_fsstat_3_svc;
+		break;
+
+	case NFS3_FSINFO:
+		_xdr_argument = (xdrproc_t) xdr_FSINFO3args;
+		_xdr_result = (xdrproc_t) xdr_FSINFO3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_fsinfo_3_svc;
+		break;
+
+	case NFS3_PATHCONF:
+		_xdr_argument = (xdrproc_t) xdr_PATHCONF3args;
+		_xdr_result = (xdrproc_t) xdr_PATHCONF3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_pathconf_3_svc;
+		break;
+
+	case NFS3_COMMIT:
+		_xdr_argument = (xdrproc_t) xdr_COMMIT3args;
+		_xdr_result = (xdrproc_t) xdr_COMMIT3res;
+		local = (char *(*)(char *, struct svc_req *)) nfs3_commit_3_svc;
 		break;
 
 	default:
-		svcerr_noproc(transp);
-		_rpcsvccount--;
-		_rpcsvcstate = _SERVED;
+		svcerr_noproc (transp);
 		return;
 	}
-	(void) memset((char *)&argument, 0, sizeof (argument));
-	if (!svc_getargs(transp, _xdr_argument, (caddr_t) &argument)) {
-		svcerr_decode(transp);
-		_rpcsvccount--;
-		_rpcsvcstate = _SERVED;
+	memset ((char *)&argument, 0, sizeof (argument));
+	if (!svc_getargs (transp, (xdrproc_t) _xdr_argument, (caddr_t) &argument)) {
+		svcerr_decode (transp);
 		return;
 	}
 	result = (*local)((char *)&argument, rqstp);
-	if (result != NULL && !svc_sendreply(transp, _xdr_result, result)) {
-		svcerr_systemerr(transp);
+	if (result != NULL && !svc_sendreply(transp, (xdrproc_t) _xdr_result, result)) {
+		svcerr_systemerr (transp);
 	}
-	if (!svc_freeargs(transp, _xdr_argument, (caddr_t) &argument)) {
-		_msgout("unable to free arguments");
-		exit(1);
+	if (!svc_freeargs (transp, (xdrproc_t) _xdr_argument, (caddr_t) &argument)) {
+		fprintf (stderr, "%s", "unable to free arguments");
+		exit (1);
 	}
-	_rpcsvccount--;
-	_rpcsvcstate = _SERVED;
 	return;
 }
 
-main()
+static void
+nfsacl_program_3(struct svc_req *rqstp, register SVCXPRT *transp)
 {
-	pid_t pid;
-	int i;
+	union {
+		GETACL3args nfsacl3_getacl_3_arg;
+		SETACL3args nfsacl3_setacl_3_arg;
+	} argument;
+	char *result;
+	xdrproc_t _xdr_argument, _xdr_result;
+	char *(*local)(char *, struct svc_req *);
 
-	(void) sigset(SIGPIPE, SIG_IGN);
+	switch (rqstp->rq_proc) {
+	case NFSACL3_NULL:
+		_xdr_argument = (xdrproc_t) xdr_void;
+		_xdr_result = (xdrproc_t) xdr_void;
+		local = (char *(*)(char *, struct svc_req *)) nfsacl3_null_3_svc;
+		break;
 
-	/*
-	 * If stdin looks like a TLI endpoint, we assume
-	 * that we were started by a port monitor. If
-	 * t_getstate fails with TBADF, this is not a
-	 * TLI endpoint.
-	 */
-	if (t_getstate(0) != -1 || t_errno != TBADF) {
-		char *netid;
-		struct netconfig *nconf = NULL;
-		SVCXPRT *transp;
-		int pmclose;
+	case NFSACL3_GETACL:
+		_xdr_argument = (xdrproc_t) xdr_GETACL3args;
+		_xdr_result = (xdrproc_t) xdr_GETACL3res;
+		local = (char *(*)(char *, struct svc_req *)) nfsacl3_getacl_3_svc;
+		break;
 
-		_rpcpmstart = 1;
-		openlog("nfs_prot", LOG_PID, LOG_DAEMON);
+	case NFSACL3_SETACL:
+		_xdr_argument = (xdrproc_t) xdr_SETACL3args;
+		_xdr_result = (xdrproc_t) xdr_SETACL3res;
+		local = (char *(*)(char *, struct svc_req *)) nfsacl3_setacl_3_svc;
+		break;
 
-		if ((netid = getenv("NLSPROVIDER")) == NULL) {
-		/* started from inetd */
-			pmclose = 1;
-		} else {
-			if ((nconf = getnetconfigent(netid)) == NULL)
-				_msgout("cannot get transport info");
-
-			pmclose = (t_getstate(0) != T_DATAXFER);
-		}
-		if ((transp = svc_tli_create(0, nconf, NULL, 0, 0)) == NULL) {
-			_msgout("cannot create server handle");
-			exit(1);
-		}
-		if (nconf)
-			freenetconfigent(nconf);
-		if (!svc_reg(transp, NFS_PROGRAM, NFS_VERSION, nfs_program_2, 0)) {
-			_msgout("unable to register (NFS_PROGRAM, NFS_VERSION).");
-			exit(1);
-		}
-		if (pmclose) {
-			(void) signal(SIGALRM, (SIG_PF) closedown);
-			(void) alarm(_RPCSVC_CLOSEDOWN/2);
-		}
-		svc_run();
-		exit(1);
-		/* NOTREACHED */
-	}	else {
-#ifndef RPC_SVC_FG
-		int size;
-		struct rlimit rl;
-		pid = fork();
-		if (pid < 0) {
-			perror("cannot fork");
-			exit(1);
-		}
-		if (pid)
-			exit(0);
-		rl.rlim_max = 0;
-		getrlimit(RLIMIT_NOFILE, &rl);
-		if ((size = rl.rlim_max) == 0)
-			exit(1);
-		for (i = 0; i < size; i++)
-			(void) close(i);
-		i = open("/dev/null", 2);
-		(void) dup2(i, 1);
-		(void) dup2(i, 2);
-		setsid();
-		openlog("nfs_prot", LOG_PID, LOG_DAEMON);
-#endif
+	default:
+		svcerr_noproc (transp);
+		return;
 	}
-	if (!svc_create(nfs_program_2, NFS_PROGRAM, NFS_VERSION, "netpath")) {
-		_msgout("unable to create (NFS_PROGRAM, NFS_VERSION) for netpath.");
+	memset ((char *)&argument, 0, sizeof (argument));
+	if (!svc_getargs (transp, (xdrproc_t) _xdr_argument, (caddr_t) &argument)) {
+		svcerr_decode (transp);
+		return;
+	}
+	result = (*local)((char *)&argument, rqstp);
+	if (result != NULL && !svc_sendreply(transp, (xdrproc_t) _xdr_result, result)) {
+		svcerr_systemerr (transp);
+	}
+	if (!svc_freeargs (transp, (xdrproc_t) _xdr_argument, (caddr_t) &argument)) {
+		fprintf (stderr, "%s", "unable to free arguments");
+		exit (1);
+	}
+	return;
+}
+
+int
+main (int argc, char **argv)
+{
+	register SVCXPRT *transp;
+
+	pmap_unset (NFS_PROGRAM, NFS_V3);
+	pmap_unset (NFSACL_PROGRAM, NFSACL_V3);
+
+	transp = svcudp_create(RPC_ANYSOCK);
+	if (transp == NULL) {
+		fprintf (stderr, "%s", "cannot create udp service.");
+		exit(1);
+	}
+	if (!svc_register(transp, NFS_PROGRAM, NFS_V3, nfs_program_3, IPPROTO_UDP)) {
+		fprintf (stderr, "%s", "unable to register (NFS_PROGRAM, NFS_V3, udp).");
+		exit(1);
+	}
+	if (!svc_register(transp, NFSACL_PROGRAM, NFSACL_V3, nfsacl_program_3, IPPROTO_UDP)) {
+		fprintf (stderr, "%s", "unable to register (NFSACL_PROGRAM, NFSACL_V3, udp).");
 		exit(1);
 	}
 
-	svc_run();
-	_msgout("svc_run returned");
-	exit(1);
+	transp = svctcp_create(RPC_ANYSOCK, 0, 0);
+	if (transp == NULL) {
+		fprintf (stderr, "%s", "cannot create tcp service.");
+		exit(1);
+	}
+	if (!svc_register(transp, NFS_PROGRAM, NFS_V3, nfs_program_3, IPPROTO_TCP)) {
+		fprintf (stderr, "%s", "unable to register (NFS_PROGRAM, NFS_V3, tcp).");
+		exit(1);
+	}
+	if (!svc_register(transp, NFSACL_PROGRAM, NFSACL_V3, nfsacl_program_3, IPPROTO_TCP)) {
+		fprintf (stderr, "%s", "unable to register (NFSACL_PROGRAM, NFSACL_V3, tcp).");
+		exit(1);
+	}
+
+	svc_run ();
+	fprintf (stderr, "%s", "svc_run returned");
+	exit (1);
 	/* NOTREACHED */
 }

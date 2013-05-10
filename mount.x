@@ -1,132 +1,107 @@
-/* @(#)mount.x	1.1 17 Aug 1993 */
-/* @(#)mount.x 1.5 88/04/21 Copyr 1987 Sun Micro */
+/* copied from RFC1813 and RFC1094 */
 
-/*
- * Protocol description for the mount program
- */
+const MNTPATHLEN = 1024;  /* Maximum bytes in a path name */
+const MNTNAMLEN  = 255;   /* Maximum bytes in a name */
+const FHSIZE3    = 64;    /* Maximum bytes in a V3 file handle */
 
 
-const MNTPATHLEN = 1024;	/* maximum bytes in a pathname argument */
-const MNTNAMLEN = 255;		/* maximum bytes in a name argument */
-const FHSIZE = 32;		/* size in bytes of a file handle */
-
-/*
- * The fhandle is the file handle that the server passes to the client.
- * All file operations are done using the file handles to refer to a file
- * or a directory. The file handle can contain whatever information the
- * server needs to distinguish an individual file.
- */
-typedef opaque fhandle[FHSIZE];	
-
-/*
- * If a status of zero is returned, the call completed successfully, and 
- * a file handle for the directory follows. A non-zero status indicates
- * some sort of error. The status corresponds with UNIX error numbers.
- */
-union fhstatus switch (unsigned fhs_status) {
-case 0:
-	fhandle fhs_fhandle;
-default:
-	void;
-};
-
-/*
- * The type dirpath is the pathname of a directory
- */
+typedef opaque fhandle3<FHSIZE3>;
 typedef string dirpath<MNTPATHLEN>;
-
-/*
- * The type name is used for arbitrary names (hostnames, groupnames)
- */
 typedef string name<MNTNAMLEN>;
 
-/*
- * A list of who has what mounted
- */
+enum mountstat3 {
+	MNT3_OK = 0,                 /* no error */
+	MNT3ERR_PERM = 1,            /* Not owner */
+	MNT3ERR_NOENT = 2,           /* No such file or directory */
+	MNT3ERR_IO = 5,              /* I/O error */
+	MNT3ERR_ACCES = 13,          /* Permission denied */
+	MNT3ERR_NOTDIR = 20,         /* Not a directory */
+	MNT3ERR_INVAL = 22,          /* Invalid argument */
+	MNT3ERR_NAMETOOLONG = 63,    /* Filename too long */
+	MNT3ERR_NOTSUPP = 10004,     /* Operation not supported */
+	MNT3ERR_SERVERFAULT = 10006  /* A failure on the server */
+};
+
+
 typedef struct mountbody *mountlist;
+
 struct mountbody {
-	name ml_hostname;
-	dirpath ml_directory;
-	mountlist ml_next;
+	name       ml_hostname;
+	dirpath    ml_directory;
+	mountlist  ml_next;
 };
 
-/*
- * A list of netgroups
- */
 typedef struct groupnode *groups;
+
 struct groupnode {
-	name gr_name;
-	groups gr_next;
+	name     gr_name;
+	groups   gr_next;
 };
 
-/*
- * A list of what is exported and to whom
- */
+
 typedef struct exportnode *exports;
+
 struct exportnode {
-	dirpath ex_dir;
-	groups ex_groups;
-	exports ex_next;
+	dirpath  ex_dir;
+	groups   ex_groups;
+	exports  ex_next;
 };
 
-program MOUNTPROG {
-	/*
-	 * Version one of the mount protocol communicates with version two
-	 * of the NFS protocol. The only connecting point is the fhandle 
-	 * structure, which is the same for both protocols.
-	 */
-	version MOUNTVERS {
-		/*
-		 * Does no work. It is made available in all RPC services
-		 * to allow server reponse testing and timing
-		 */
-		void
-		MOUNTPROC_NULL(void) = 0;
+struct mountres3_ok {
+	fhandle3   fhandle;
+	int        auth_flavors<>;
+};
 
-		/*	
-		 * If fhs_status is 0, then fhs_fhandle contains the
-	 	 * file handle for the directory. This file handle may
-		 * be used in the NFS protocol. This procedure also adds
-		 * a new entry to the mount list for this client mounting
-		 * the directory.
-		 * Unix authentication required.
-		 */
-		fhstatus 
-		MOUNTPROC_MNT(dirpath) = 1;
+union mountres3 switch (mountstat3 fhs_status) {
+	case MNT3_OK:
+		mountres3_ok  mountinfo;
+	default:
+		void;
+};
 
-		/*
-		 * Returns the list of remotely mounted filesystems. The 
-		 * mountlist contains one entry for each hostname and 
-		 * directory pair.
-		 */
-		mountlist
-		MOUNTPROC_DUMP(void) = 2;
 
-		/*
-		 * Removes the mount list entry for the directory
-		 * Unix authentication required.
-		 */
-		void
-		MOUNTPROC_UMNT(dirpath) = 3;
+enum mountstat1 {
+	MNT1_OK = 0,                 /* no error */
+	MNT1ERR_PERM = 1,            /* Not owner */
+	MNT1ERR_NOENT = 2,           /* No such file or directory */
+	MNT1ERR_IO = 5,              /* I/O error */
+	MNT1ERR_ACCES = 13,          /* Permission denied */
+	MNT1ERR_NOTDIR = 20,         /* Not a directory */
+	MNT1ERR_INVAL = 22,          /* Invalid argument */
+	MNT1ERR_NAMETOOLONG = 63,    /* Filename too long */
+	MNT1ERR_NOTSUPP = 10004,     /* Operation not supported */
+	MNT1ERR_SERVERFAULT = 10006  /* A failure on the server */
+};
 
-		/*
-		 * Removes all of the mount list entries for this client
-		 * Unix authentication required.
-		 */
-		void
-		MOUNTPROC_UMNTALL(void) = 4;
+const FHSIZE = 32;
+typedef opaque fhandle1[FHSIZE];
 
-		/*
-		 * Returns a list of all the exported filesystems, and which
-		 * machines are allowed to import it.
-		 */
-		exports
-		MOUNTPROC_EXPORT(void)  = 5;
-	
-		/*
-		 * Identical to MOUNTPROC_EXPORT above
-		 */
-		exports
-		MOUNTPROC_EXPORTALL(void) = 6;
+struct mountres1_ok {
+	fhandle1   fhandle;
+};
+
+union mountres1 switch (mountstat1 fhs_status) {
+	case MNT1_OK:
+		mountres1_ok  mountinfo;
+	default:
+		void;
+};
+
+program MOUNT_PROGRAM {
+	version MOUNT_V1 {
+	void      MOUNT1_NULL(void)    = 0;
+	mountres1 MOUNT1_MNT(dirpath)  = 1;
+	mountlist MOUNT1_DUMP(void)    = 2;
+	void      MOUNT1_UMNT(dirpath) = 3;
+	void      MOUNT1_UMNTALL(void) = 4;
+	exports   MOUNT1_EXPORT(void)  = 5;
 	} = 1;
+	version MOUNT_V3 {
+	void      MOUNT3_NULL(void)    = 0;
+	mountres3 MOUNT3_MNT(dirpath)  = 1;
+	mountlist MOUNT3_DUMP(void)    = 2;
+	void      MOUNT3_UMNT(dirpath) = 3;
+	void      MOUNT3_UMNTALL(void) = 4;
+	exports   MOUNT3_EXPORT(void)  = 5;
+	} = 3;
 } = 100005;

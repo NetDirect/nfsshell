@@ -10,12 +10,12 @@
 static struct timeval TIMEOUT = { 25, 0 };
 
 void *
-mountproc_null_1(void *argp, CLIENT *clnt)
+mount1_null_1(void *argp, CLIENT *clnt)
 {
 	static char clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_NULL,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_NULL,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -24,15 +24,15 @@ mountproc_null_1(void *argp, CLIENT *clnt)
 	return ((void *)&clnt_res);
 }
 
-fhstatus *
-mountproc_mnt_1(dirpath *argp, CLIENT *clnt)
+mountres1 *
+mount1_mnt_1(dirpath *argp, CLIENT *clnt)
 {
-	static fhstatus clnt_res;
+	static mountres1 clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_MNT,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_MNT,
 		(xdrproc_t) xdr_dirpath, (caddr_t) argp,
-		(xdrproc_t) xdr_fhstatus, (caddr_t) &clnt_res,
+		(xdrproc_t) xdr_mountres1, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
@@ -40,12 +40,12 @@ mountproc_mnt_1(dirpath *argp, CLIENT *clnt)
 }
 
 mountlist *
-mountproc_dump_1(void *argp, CLIENT *clnt)
+mount1_dump_1(void *argp, CLIENT *clnt)
 {
 	static mountlist clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_DUMP,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_DUMP,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_mountlist, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -55,12 +55,12 @@ mountproc_dump_1(void *argp, CLIENT *clnt)
 }
 
 void *
-mountproc_umnt_1(dirpath *argp, CLIENT *clnt)
+mount1_umnt_1(dirpath *argp, CLIENT *clnt)
 {
 	static char clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNT,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_UMNT,
 		(xdrproc_t) xdr_dirpath, (caddr_t) argp,
 		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -70,12 +70,12 @@ mountproc_umnt_1(dirpath *argp, CLIENT *clnt)
 }
 
 void *
-mountproc_umntall_1(void *argp, CLIENT *clnt)
+mount1_umntall_1(void *argp, CLIENT *clnt)
 {
 	static char clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_UMNTALL,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_UMNTALL,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -85,12 +85,12 @@ mountproc_umntall_1(void *argp, CLIENT *clnt)
 }
 
 exports *
-mountproc_export_1(void *argp, CLIENT *clnt)
+mount1_export_1(void *argp, CLIENT *clnt)
 {
 	static exports clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORT,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT1_EXPORT,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_exports, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -99,13 +99,88 @@ mountproc_export_1(void *argp, CLIENT *clnt)
 	return (&clnt_res);
 }
 
+void *
+mount3_null_3(void *argp, CLIENT *clnt)
+{
+	static char clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_NULL,
+		(xdrproc_t) xdr_void, (caddr_t) argp,
+		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return ((void *)&clnt_res);
+}
+
+mountres3 *
+mount3_mnt_3(dirpath *argp, CLIENT *clnt)
+{
+	static mountres3 clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_MNT,
+		(xdrproc_t) xdr_dirpath, (caddr_t) argp,
+		(xdrproc_t) xdr_mountres3, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+mountlist *
+mount3_dump_3(void *argp, CLIENT *clnt)
+{
+	static mountlist clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_DUMP,
+		(xdrproc_t) xdr_void, (caddr_t) argp,
+		(xdrproc_t) xdr_mountlist, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+void *
+mount3_umnt_3(dirpath *argp, CLIENT *clnt)
+{
+	static char clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_UMNT,
+		(xdrproc_t) xdr_dirpath, (caddr_t) argp,
+		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return ((void *)&clnt_res);
+}
+
+void *
+mount3_umntall_3(void *argp, CLIENT *clnt)
+{
+	static char clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_UMNTALL,
+		(xdrproc_t) xdr_void, (caddr_t) argp,
+		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return ((void *)&clnt_res);
+}
+
 exports *
-mountproc_exportall_1(void *argp, CLIENT *clnt)
+mount3_export_3(void *argp, CLIENT *clnt)
 {
 	static exports clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, MOUNTPROC_EXPORTALL,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, MOUNT3_EXPORT,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_exports, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {

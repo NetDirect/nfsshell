@@ -22,10 +22,10 @@
 #
 
 # uncomment the following 4 lines for Solaris 2.x
-CC		= gcc
-CFLAGS		= -DSYSV -DREADLINE -I/usr/local/include
-LIBS		= -lsocket -L/usr/ucblib -R/usr/ucblib -lrpcsoc -lnsl \
-		  -L/usr/local/lib -lreadline -lhistory -ltermlib
+#CC		= gcc
+#CFLAGS		= -DSYSV -DREADLINE -I/usr/local/include
+#LIBS		= -lsocket -L/usr/ucblib -R/usr/ucblib -lrpcsoc -lnsl \
+#		  -L/usr/local/lib -lreadline -lhistory -ltermlib
 
 # uncomment the following 3 lines for AIX
 #CC		= gcc
@@ -33,20 +33,24 @@ LIBS		= -lsocket -L/usr/ucblib -R/usr/ucblib -lrpcsoc -lnsl \
 #LIBS		=
 
 # uncomment the following 3 lines for linux (tested on 2.0.33/redhat 5)
-#CC		= gcc
-#CFLAGS		= -DREADLINE -I/usr/local/include
-#LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
+CC		= gcc
+CFLAGS		= -g -DREADLINE -I/usr/local/include
+LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
 
 RPCGEN		= rpcgen
 RGFLAGS		= -C
 
 NFS_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfs.o
+NFST_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfs-truncmod.o
 STEAL_OBJECTS	= steal.o nfs_prot_clnt.o nfs_prot_xdr.o
 RPCGEN_MOUNT	= mount.h mount_clnt.c mount_svc.c mount_xdr.c
 RPCGEN_NFS_PROT	= nfs_prot.h nfs_prot_clnt.c nfs_prot_svc.c nfs_prot_xdr.c
 
 nfs:	$(NFS_OBJECTS)
 	$(CC) -g -o nfs $(NFS_OBJECTS) $(LIBS)
+
+nfs-truncmod:	$(NFST_OBJECTS) nfs-truncmod.c
+	$(CC) -g -o nfs-truncmod $(NFST_OBJECTS) $(LIBS)
 
 steal:	$(STEAL_OBJECTS)
 	$(CC) -g -o steal $(STEAL_OBJECTS) $(LIBS)

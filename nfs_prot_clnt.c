@@ -10,12 +10,12 @@
 static struct timeval TIMEOUT = { 25, 0 };
 
 void *
-nfsproc_null_2(void *argp, CLIENT *clnt)
+nfs3_null_3(void *argp, CLIENT *clnt)
 {
 	static char clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_NULL,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_NULL,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -24,30 +24,315 @@ nfsproc_null_2(void *argp, CLIENT *clnt)
 	return ((void *)&clnt_res);
 }
 
-attrstat *
-nfsproc_getattr_2(nfs_fh *argp, CLIENT *clnt)
+GETATTR3res *
+nfs3_getattr_3(GETATTR3args *argp, CLIENT *clnt)
 {
-	static attrstat clnt_res;
+	static GETATTR3res clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_GETATTR,
-		(xdrproc_t) xdr_nfs_fh, (caddr_t) argp,
-		(xdrproc_t) xdr_attrstat, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_GETATTR,
+		(xdrproc_t) xdr_GETATTR3args, (caddr_t) argp,
+		(xdrproc_t) xdr_GETATTR3res, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
 	return (&clnt_res);
 }
 
-attrstat *
-nfsproc_setattr_2(sattrargs *argp, CLIENT *clnt)
+SETATTR3res *
+nfs3_setattr_3(SETATTR3args *argp, CLIENT *clnt)
 {
-	static attrstat clnt_res;
+	static SETATTR3res clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_SETATTR,
-		(xdrproc_t) xdr_sattrargs, (caddr_t) argp,
-		(xdrproc_t) xdr_attrstat, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_SETATTR,
+		(xdrproc_t) xdr_SETATTR3args, (caddr_t) argp,
+		(xdrproc_t) xdr_SETATTR3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+LOOKUP3res *
+nfs3_lookup_3(LOOKUP3args *argp, CLIENT *clnt)
+{
+	static LOOKUP3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_LOOKUP,
+		(xdrproc_t) xdr_LOOKUP3args, (caddr_t) argp,
+		(xdrproc_t) xdr_LOOKUP3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+ACCESS3res *
+nfs3_access_3(ACCESS3args *argp, CLIENT *clnt)
+{
+	static ACCESS3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_ACCESS,
+		(xdrproc_t) xdr_ACCESS3args, (caddr_t) argp,
+		(xdrproc_t) xdr_ACCESS3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+READLINK3res *
+nfs3_readlink_3(READLINK3args *argp, CLIENT *clnt)
+{
+	static READLINK3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_READLINK,
+		(xdrproc_t) xdr_READLINK3args, (caddr_t) argp,
+		(xdrproc_t) xdr_READLINK3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+READ3res *
+nfs3_read_3(READ3args *argp, CLIENT *clnt)
+{
+	static READ3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_READ,
+		(xdrproc_t) xdr_READ3args, (caddr_t) argp,
+		(xdrproc_t) xdr_READ3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+WRITE3res *
+nfs3_write_3(WRITE3args *argp, CLIENT *clnt)
+{
+	static WRITE3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_WRITE,
+		(xdrproc_t) xdr_WRITE3args, (caddr_t) argp,
+		(xdrproc_t) xdr_WRITE3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+CREATE3res *
+nfs3_create_3(CREATE3args *argp, CLIENT *clnt)
+{
+	static CREATE3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_CREATE,
+		(xdrproc_t) xdr_CREATE3args, (caddr_t) argp,
+		(xdrproc_t) xdr_CREATE3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+MKDIR3res *
+nfs3_mkdir_3(MKDIR3args *argp, CLIENT *clnt)
+{
+	static MKDIR3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_MKDIR,
+		(xdrproc_t) xdr_MKDIR3args, (caddr_t) argp,
+		(xdrproc_t) xdr_MKDIR3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+SYMLINK3res *
+nfs3_symlink_3(SYMLINK3args *argp, CLIENT *clnt)
+{
+	static SYMLINK3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_SYMLINK,
+		(xdrproc_t) xdr_SYMLINK3args, (caddr_t) argp,
+		(xdrproc_t) xdr_SYMLINK3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+MKNOD3res *
+nfs3_mknod_3(MKNOD3args *argp, CLIENT *clnt)
+{
+	static MKNOD3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_MKNOD,
+		(xdrproc_t) xdr_MKNOD3args, (caddr_t) argp,
+		(xdrproc_t) xdr_MKNOD3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+REMOVE3res *
+nfs3_remove_3(REMOVE3args *argp, CLIENT *clnt)
+{
+	static REMOVE3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_REMOVE,
+		(xdrproc_t) xdr_REMOVE3args, (caddr_t) argp,
+		(xdrproc_t) xdr_REMOVE3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+RMDIR3res *
+nfs3_rmdir_3(RMDIR3args *argp, CLIENT *clnt)
+{
+	static RMDIR3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_RMDIR,
+		(xdrproc_t) xdr_RMDIR3args, (caddr_t) argp,
+		(xdrproc_t) xdr_RMDIR3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+RENAME3res *
+nfs3_rename_3(RENAME3args *argp, CLIENT *clnt)
+{
+	static RENAME3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_RENAME,
+		(xdrproc_t) xdr_RENAME3args, (caddr_t) argp,
+		(xdrproc_t) xdr_RENAME3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+LINK3res *
+nfs3_link_3(LINK3args *argp, CLIENT *clnt)
+{
+	static LINK3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_LINK,
+		(xdrproc_t) xdr_LINK3args, (caddr_t) argp,
+		(xdrproc_t) xdr_LINK3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+READDIR3res *
+nfs3_readdir_3(READDIR3args *argp, CLIENT *clnt)
+{
+	static READDIR3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_READDIR,
+		(xdrproc_t) xdr_READDIR3args, (caddr_t) argp,
+		(xdrproc_t) xdr_READDIR3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+READDIRPLUS3res *
+nfs3_readdirplus_3(READDIRPLUS3args *argp, CLIENT *clnt)
+{
+	static READDIRPLUS3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_READDIRPLUS,
+		(xdrproc_t) xdr_READDIRPLUS3args, (caddr_t) argp,
+		(xdrproc_t) xdr_READDIRPLUS3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+FSSTAT3res *
+nfs3_fsstat_3(FSSTAT3args *argp, CLIENT *clnt)
+{
+	static FSSTAT3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_FSSTAT,
+		(xdrproc_t) xdr_FSSTAT3args, (caddr_t) argp,
+		(xdrproc_t) xdr_FSSTAT3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+FSINFO3res *
+nfs3_fsinfo_3(FSINFO3args *argp, CLIENT *clnt)
+{
+	static FSINFO3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_FSINFO,
+		(xdrproc_t) xdr_FSINFO3args, (caddr_t) argp,
+		(xdrproc_t) xdr_FSINFO3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+PATHCONF3res *
+nfs3_pathconf_3(PATHCONF3args *argp, CLIENT *clnt)
+{
+	static PATHCONF3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_PATHCONF,
+		(xdrproc_t) xdr_PATHCONF3args, (caddr_t) argp,
+		(xdrproc_t) xdr_PATHCONF3res, (caddr_t) &clnt_res,
+		TIMEOUT) != RPC_SUCCESS) {
+		return (NULL);
+	}
+	return (&clnt_res);
+}
+
+COMMIT3res *
+nfs3_commit_3(COMMIT3args *argp, CLIENT *clnt)
+{
+	static COMMIT3res clnt_res;
+
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFS3_COMMIT,
+		(xdrproc_t) xdr_COMMIT3args, (caddr_t) argp,
+		(xdrproc_t) xdr_COMMIT3res, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
@@ -55,12 +340,12 @@ nfsproc_setattr_2(sattrargs *argp, CLIENT *clnt)
 }
 
 void *
-nfsproc_root_2(void *argp, CLIENT *clnt)
+nfsacl3_null_3(void *argp, CLIENT *clnt)
 {
 	static char clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_ROOT,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFSACL3_NULL,
 		(xdrproc_t) xdr_void, (caddr_t) argp,
 		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
@@ -69,210 +354,30 @@ nfsproc_root_2(void *argp, CLIENT *clnt)
 	return ((void *)&clnt_res);
 }
 
-diropres *
-nfsproc_lookup_2(diropargs *argp, CLIENT *clnt)
+GETACL3res *
+nfsacl3_getacl_3(GETACL3args *argp, CLIENT *clnt)
 {
-	static diropres clnt_res;
+	static GETACL3res clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_LOOKUP,
-		(xdrproc_t) xdr_diropargs, (caddr_t) argp,
-		(xdrproc_t) xdr_diropres, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFSACL3_GETACL,
+		(xdrproc_t) xdr_GETACL3args, (caddr_t) argp,
+		(xdrproc_t) xdr_GETACL3res, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}
 	return (&clnt_res);
 }
 
-readlinkres *
-nfsproc_readlink_2(nfs_fh *argp, CLIENT *clnt)
+SETACL3res *
+nfsacl3_setacl_3(SETACL3args *argp, CLIENT *clnt)
 {
-	static readlinkres clnt_res;
+	static SETACL3res clnt_res;
 
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_READLINK,
-		(xdrproc_t) xdr_nfs_fh, (caddr_t) argp,
-		(xdrproc_t) xdr_readlinkres, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-readres *
-nfsproc_read_2(readargs *argp, CLIENT *clnt)
-{
-	static readres clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_READ,
-		(xdrproc_t) xdr_readargs, (caddr_t) argp,
-		(xdrproc_t) xdr_readres, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-void *
-nfsproc_writecache_2(void *argp, CLIENT *clnt)
-{
-	static char clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_WRITECACHE,
-		(xdrproc_t) xdr_void, (caddr_t) argp,
-		(xdrproc_t) xdr_void, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return ((void *)&clnt_res);
-}
-
-attrstat *
-nfsproc_write_2(writeargs *argp, CLIENT *clnt)
-{
-	static attrstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_WRITE,
-		(xdrproc_t) xdr_writeargs, (caddr_t) argp,
-		(xdrproc_t) xdr_attrstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-diropres *
-nfsproc_create_2(createargs *argp, CLIENT *clnt)
-{
-	static diropres clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_CREATE,
-		(xdrproc_t) xdr_createargs, (caddr_t) argp,
-		(xdrproc_t) xdr_diropres, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-nfsstat *
-nfsproc_remove_2(diropargs *argp, CLIENT *clnt)
-{
-	static nfsstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_REMOVE,
-		(xdrproc_t) xdr_diropargs, (caddr_t) argp,
-		(xdrproc_t) xdr_nfsstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-nfsstat *
-nfsproc_rename_2(renameargs *argp, CLIENT *clnt)
-{
-	static nfsstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_RENAME,
-		(xdrproc_t) xdr_renameargs, (caddr_t) argp,
-		(xdrproc_t) xdr_nfsstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-nfsstat *
-nfsproc_link_2(linkargs *argp, CLIENT *clnt)
-{
-	static nfsstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_LINK,
-		(xdrproc_t) xdr_linkargs, (caddr_t) argp,
-		(xdrproc_t) xdr_nfsstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-nfsstat *
-nfsproc_symlink_2(symlinkargs *argp, CLIENT *clnt)
-{
-	static nfsstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_SYMLINK,
-		(xdrproc_t) xdr_symlinkargs, (caddr_t) argp,
-		(xdrproc_t) xdr_nfsstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-diropres *
-nfsproc_mkdir_2(createargs *argp, CLIENT *clnt)
-{
-	static diropres clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_MKDIR,
-		(xdrproc_t) xdr_createargs, (caddr_t) argp,
-		(xdrproc_t) xdr_diropres, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-nfsstat *
-nfsproc_rmdir_2(diropargs *argp, CLIENT *clnt)
-{
-	static nfsstat clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_RMDIR,
-		(xdrproc_t) xdr_diropargs, (caddr_t) argp,
-		(xdrproc_t) xdr_nfsstat, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-readdirres *
-nfsproc_readdir_2(readdirargs *argp, CLIENT *clnt)
-{
-	static readdirres clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_READDIR,
-		(xdrproc_t) xdr_readdirargs, (caddr_t) argp,
-		(xdrproc_t) xdr_readdirres, (caddr_t) &clnt_res,
-		TIMEOUT) != RPC_SUCCESS) {
-		return (NULL);
-	}
-	return (&clnt_res);
-}
-
-statfsres *
-nfsproc_statfs_2(nfs_fh *argp, CLIENT *clnt)
-{
-	static statfsres clnt_res;
-
-	memset((char *)&clnt_res, 0, sizeof (clnt_res));
-	if (clnt_call(clnt, NFSPROC_STATFS,
-		(xdrproc_t) xdr_nfs_fh, (caddr_t) argp,
-		(xdrproc_t) xdr_statfsres, (caddr_t) &clnt_res,
+	memset((char *)&clnt_res, 0, sizeof(clnt_res));
+	if (clnt_call (clnt, NFSACL3_SETACL,
+		(xdrproc_t) xdr_SETACL3args, (caddr_t) argp,
+		(xdrproc_t) xdr_SETACL3res, (caddr_t) &clnt_res,
 		TIMEOUT) != RPC_SUCCESS) {
 		return (NULL);
 	}

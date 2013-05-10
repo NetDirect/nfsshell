@@ -1,0 +1,5 @@
+.*.sw[op]
+*.o
+*.bak
+nfs
+tags
