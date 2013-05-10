@@ -27,7 +27,7 @@ typedef uint64 cookie3;
 struct nfs_fh3 {
 	struct {
 		u_int data_len;
-		char *data_val;
+		char data_val[NFS3_FHSIZE];
 	} data;
 };
 typedef struct nfs_fh3 nfs_fh3;

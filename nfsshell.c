@@ -43,6 +43,7 @@
  * Contributions:
  *	- Source routing inspired by Casper Dik's code.
  *	- Linux modifications (and other cleanup) inspired by Marc Heuse
+ *	- Porting to NFSv3 done by Michael Brown
  */
 #include <assert.h>
 #include <stdio.h>
@@ -199,7 +200,7 @@ struct sockaddr_in nfsserver_addr; /* remote nfs server address */
 CLIENT *mntclient = NULL;	/* mount RPC client */
 CLIENT *nfsclient = NULL;	/* nfs RPC client */
 mountres3 *mountpoint = NULL;	/* remote mount point */
-fhandle3 directory_handle;	/* current directory handle */
+nfs_fh3 directory_handle;	/* current directory handle */
 struct timeval timeout = { 60, 0 }; /* default time out */
 int transfersize;		/* NFS default transfer size */
 
@@ -248,7 +249,7 @@ int setup(int , struct sockaddr_in *, int, int);
 int privileged(int, struct sockaddr_in *);
 void close_nfs(void);
 
-int getdirentries(fhandle3 *, char ***, char ***, int);
+int getdirentries(nfs_fh3 *, char ***, char ***, int);
 void printfilestatus(char *file);
 int writefiledate(time_t);
 int match(char *, int, char **);
@@ -256,6 +257,30 @@ int matchpattern(char *, char *);
 int amatchpattern(char *, char *);
 int umatchpattern(char *, char *);
 
+
+void*
+memcpy(void *dest, const void *src, size_t n);
+
+void*
+fhandle3copy(fhandle3 *dest, const fhandle3 *src)
+{
+    dest->fhandle3_len = src->fhandle3_len;
+    return memcpy(dest->fhandle3_val, src->fhandle3_val, FHSIZE3);
+}
+
+void*
+fhandle3_to_nfs_fh3(nfs_fh3 *dest, const fhandle3 *src)
+{
+    dest->data.data_len = src->fhandle3_len;
+    return memcpy(dest->data.data_val, src->fhandle3_val, MIN(NFS3_FHSIZE,FHSIZE3));
+}
+
+void*
+nfs_fh3copy(nfs_fh3 *dest, const nfs_fh3 *src)
+{
+    dest->data.data_len = src->data.data_len;
+    return memcpy(dest->data.data_val, src->data.data_val, NFS3_FHSIZE);
+}
 
 int
 main(int argc, char **argv)
@@ -509,7 +534,7 @@ do_cd(int argc, char **argv)
     char *component;
     LOOKUP3args args;
     LOOKUP3res *res;
-    fhandle3 handle;
+    nfs_fh3 handle;
 
     if (mountpath == NULL) {
 	fprintf(stderr, "cd: no remote file system mounted\n");
@@ -518,16 +543,16 @@ do_cd(int argc, char **argv)
 
     /* easy case: cd to root */
     if (argc == 1) {
-	memcpy(&directory_handle, &mountpoint->mountres3_u.mountinfo.fhandle, sizeof(nfs_fh3));
+	fhandle3_to_nfs_fh3(&directory_handle, &mountpoint->mountres3_u.mountinfo.fhandle);
 	return;
     }
 
     /* if a directory start with '/', we search from the root */
     if (*(p = argv[1]) == '/') {
-	memcpy(&handle, &mountpoint->mountres3_u.mountinfo.fhandle, sizeof(nfs_fh3));
+	fhandle3_to_nfs_fh3(&handle, &mountpoint->mountres3_u.mountinfo.fhandle);
 	p++;
     } else
-	memcpy(&handle, &directory_handle, sizeof(nfs_fh3));
+	nfs_fh3copy(&handle, &directory_handle);
 
     /*
      * Break path up into directory components and check every
@@ -539,7 +564,7 @@ do_cd(int argc, char **argv)
 	    /* do nothing */;
 	*p++ = '\0';
 	args.what.name = component;
-	memcpy(&args.what.dir, &handle, sizeof(nfs_fh3));
+	nfs_fh3copy(&args.what.dir, &handle);
 	if ((res = nfs3_lookup_3(&args, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_lookup");
 	    return;
@@ -552,9 +577,9 @@ do_cd(int argc, char **argv)
 	    fprintf(stderr, "%s: is not a directory\n", component);
 	    return;
 	}
-	memcpy(&handle, &res->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+	nfs_fh3copy(&handle, &res->LOOKUP3res_u.resok.object);
     }
-    memcpy(&directory_handle, &handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&directory_handle, &handle);
 }
 
 /*
@@ -594,7 +619,7 @@ do_cat(int argc, char **argv)
 
     /* lookup name in current directory */
     dargs.what.name = argv[1];
-    memcpy(&dargs.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	return;
@@ -607,7 +632,7 @@ do_cat(int argc, char **argv)
 	fprintf(stderr, "%s: is not a regular file\n", argv[1]);
 	return;
     }
-    memcpy(&rargs.file, &dres->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+    nfs_fh3copy(&rargs.file, &dres->LOOKUP3res_u.resok.object);
     for (offset = 0; offset < dres->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
 	rargs.offset = offset;
 	rargs.count = transfersize;
@@ -668,7 +693,7 @@ printfilestatus(char *file)
     int mode;
 
     args.what.name = file;
-    memcpy(&args.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.what.dir, &directory_handle);
 
     if ((res = nfs3_lookup_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
@@ -735,7 +760,7 @@ printfilestatus(char *file)
 	READLINK3res *rlres;
 	READLINK3args rlargs;
 
-	memcpy(&rlargs, &res->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+	nfs_fh3copy(&rlargs.symlink, &res->LOOKUP3res_u.resok.object);
 	if ((rlres = nfs3_readlink_3(&rlargs, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_readlink");
 	    return;
@@ -799,7 +824,7 @@ do_get(int argc, char **argv)
 
 	/* only regular files can be transfered */
 	args.what.name = *p;
-	memcpy(&args.what.dir, &directory_handle, sizeof(nfs_fh3));
+	nfs_fh3copy(&args.what.dir, &directory_handle);
 	if ((res = nfs3_lookup_3(&args, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_lookup");
 	    return;
@@ -826,7 +851,7 @@ do_get(int argc, char **argv)
 	    fprintf(stderr, "get: cannot create %s\n", *p);
 	    continue;
 	}
-	memcpy(&rargs.file, &res->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+	nfs_fh3copy(&rargs.file, &res->LOOKUP3res_u.resok.object);
 	for (offset = 0; offset < res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
 	    rargs.offset = offset;
 	    rargs.count = transfersize;
@@ -866,7 +891,7 @@ do_df(int argc, char **argv)
 	fprintf(stderr, "Usage: df\n");
 	return;
     }
-    memcpy(&args.fsroot, &mountpoint->mountres3_u.mountinfo.fhandle, sizeof(nfs_fh3));
+    fhandle3_to_nfs_fh3(&args.fsroot, &mountpoint->mountres3_u.mountinfo.fhandle);
     if ((res = nfs3_fsstat_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_fsstat");
 	return;
@@ -902,7 +927,7 @@ do_rm(int argc, char **argv)
 	return;
     }
     args.object.name = argv[1];
-    memcpy(&args.object.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.object.dir, &directory_handle);
     if ((res = nfs3_remove_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_remove");
 	return;
@@ -934,7 +959,7 @@ do_ln(int argc, char **argv)
     }
 
     dargs.what.name = argv[1];
-    memcpy(&dargs.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	return;
@@ -944,9 +969,9 @@ do_ln(int argc, char **argv)
 	return;
     }
 
-    memcpy(&largs.file, &dres->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+    nfs_fh3copy(&largs.file, &dres->LOOKUP3res_u.resok.object);
     largs.link.name = argv[2];
-    memcpy(&largs.link.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&largs.link.dir, &directory_handle);
 
     if ((lres = nfs3_link_3(&largs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_link");
@@ -976,9 +1001,9 @@ do_mv(int argc, char **argv)
 	return;
     }
     args.from.name = argv[1];
-    memcpy(&args.from.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.from.dir, &directory_handle);
     args.to.name = argv[2];
-    memcpy(&args.to.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.to.dir, &directory_handle);
     if ((res = nfs3_rename_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_rename");
 	return;
@@ -1008,7 +1033,7 @@ do_mkdir(int argc, char **argv)
     }
 
     args.where.name = argv[1];
-    memcpy(&args.where.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.where.dir, &directory_handle);
     args.attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode=040755 };
     args.attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u.uid=uid };
     args.attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u.gid=gid };
@@ -1043,7 +1068,7 @@ do_create(int argc, char **argv)
     }
 
     args.where.name = argv[1];
-    memcpy(&args.where.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.where.dir, &directory_handle);
     args.how.mode = EXCLUSIVE;
     args.how.createhow3_u.obj_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode=040755 };
     args.how.createhow3_u.obj_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u.uid=uid };
@@ -1081,7 +1106,7 @@ do_rmdir(int argc, char **argv)
     }
 
     args.object.name = argv[1];
-    memcpy(&args.object.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.object.dir, &directory_handle);
     if ((res = nfs3_rmdir_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_rmdir");
 	return;
@@ -1118,7 +1143,7 @@ do_chmod(int argc, char **argv)
     }
 
     dargs.what.name = argv[2];
-    memcpy(&dargs.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	return;
@@ -1128,7 +1153,7 @@ do_chmod(int argc, char **argv)
 	return;
     }
 
-    memcpy(&aargs.object, &dres->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+    nfs_fh3copy(&aargs.object, &dres->LOOKUP3res_u.resok.object);
     aargs.new_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode=mode };
     aargs.new_attributes.uid   = (set_uid3)  { .set_it=FALSE };
     aargs.new_attributes.gid   = (set_gid3)  { .set_it=FALSE };
@@ -1187,7 +1212,7 @@ usage:	fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
      * Make remote device node
      */
     cargs.where.name = argv[1];
-    memcpy(&cargs.where.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&cargs.where.dir, &directory_handle);
     cargs.how.createhow3_u.obj_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode=mode | 0777};
     cargs.how.createhow3_u.obj_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u = uid };
     cargs.how.createhow3_u.obj_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u = gid };
@@ -1231,7 +1256,7 @@ do_chown(int argc, char **argv)
     }
 
     dargs.what.name = argv[2];
-    memcpy(&dargs.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	return;
@@ -1241,7 +1266,7 @@ do_chown(int argc, char **argv)
 	return;
     }
 
-    memcpy(&aargs.object, &dres->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+    nfs_fh3copy(&aargs.object, &dres->LOOKUP3res_u.resok.object);
     aargs.new_attributes.mode  = (set_mode3) { .set_it=FALSE };
     aargs.new_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u.uid = own_uid };
     aargs.new_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u.gid = own_gid };
@@ -1270,7 +1295,7 @@ do_put(int argc, char **argv)
     CREATE3args cargs;
     CREATE3res *cres;
     char buf[BUFSIZ];
-    fhandle3 handle;
+    nfs_fh3 handle;
     FILE *fp;
     int n;
     long offset;
@@ -1293,7 +1318,7 @@ do_put(int argc, char **argv)
      * Create remote file name
      */
     cargs.where.name = argc == 3 ? argv[2] : argv[1];
-    memcpy(&cargs.where.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&cargs.where.dir, &directory_handle);
     cargs.how.mode = EXCLUSIVE;
     cargs.how.createhow3_u.obj_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode= 0666 };
     cargs.how.createhow3_u.obj_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u.uid=uid };
@@ -1314,7 +1339,7 @@ do_put(int argc, char **argv)
      * Look up remote file name, to get its handle
      */
     dargs.what.name = argc == 3 ? argv[2] : argv[1];
-    memcpy(&dargs.what.dir, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	fclose(fp);
@@ -1325,13 +1350,13 @@ do_put(int argc, char **argv)
 	fclose(fp);
 	return;
     }
-    memcpy(&handle, &dres->LOOKUP3res_u.resok.object, sizeof(nfs_fh3));
+    nfs_fh3copy(&handle, &dres->LOOKUP3res_u.resok.object);
 
     for (offset = 0; (n = fread(buf, 1, sizeof(buf), fp)) > 0; offset += n) {
 	WRITE3args wargs;
 	WRITE3res *wres;
 
-	memcpy(&wargs.file, &handle, sizeof(nfs_fh3));
+	nfs_fh3copy(&wargs.file, &handle);
 	wargs.offset = offset;
 	wargs.count = n;
 	wargs.data.data_len = n;
@@ -1893,8 +1918,7 @@ open_nfs(char *path, int port, int flags)
 		nfs_error(mountpoint->fhs_status));
 	    return 0;
 	}
-	memcpy(&directory_handle,
-	    &mountpoint->mountres3_u.mountinfo.fhandle, sizeof(nfs_fh3));
+	fhandle3_to_nfs_fh3(&directory_handle, &mountpoint->mountres3_u.mountinfo.fhandle);
 
 	/* we got the file handle, unmount if don't want to get noticed */
 	if (flags & MOUNT_UMOUNT)
@@ -1972,10 +1996,10 @@ copy_nfs_fh3(nfs_fh3 dst, nfs_fh3 src)
 int
 determine_transfersize(void)
 {
-    FSINFO3args args = { 0, NULL };
+    FSINFO3args args = { 0 };
     FSINFO3res *res;
 
-    memcpy(&args.fsroot, &directory_handle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.fsroot, &directory_handle);
     if ((res = nfs3_fsinfo_3(&args, nfsclient)) == NULL)
 	return 8192;
     if (res->status != NFS3_OK)
@@ -2090,7 +2114,7 @@ create_authenticator(void)
  * this table.
  */
 int
-getdirentries(fhandle3 *dirhandle, char ***table, char ***ptr, int nentries)
+getdirentries(nfs_fh3 *dirhandle, char ***table, char ***ptr, int nentries)
 {
     READDIR3args args;
     READDIR3res *res;
@@ -2105,7 +2129,7 @@ getdirentries(fhandle3 *dirhandle, char ***table, char ***ptr, int nentries)
 	return 0;
     }
 
-    memcpy(&args.dir, dirhandle, sizeof(nfs_fh3));
+    nfs_fh3copy(&args.dir, dirhandle);
 
     memset(&args.cookie, 0, sizeof(args.cookie));
     args.count = 8192;

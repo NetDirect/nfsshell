@@ -19,7 +19,7 @@ extern "C" {
 
 typedef struct {
 	u_int fhandle3_len;
-	char *fhandle3_val;
+	char fhandle3_val[FHSIZE3];
 } fhandle3;
 
 typedef char *dirpath;
