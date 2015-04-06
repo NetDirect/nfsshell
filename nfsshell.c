@@ -628,12 +628,12 @@ do_cat(int argc, char **argv)
 	fprintf(stderr, "%s: %s\n", argv[1], nfs_error(dres->status));
 	return;
     }
-    if (dres->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type != NF3REG) {
+    if (dres->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.type != NF3REG) {
 	fprintf(stderr, "%s: is not a regular file\n", argv[1]);
 	return;
     }
     nfs_fh3copy(&rargs.file, &dres->LOOKUP3res_u.resok.object);
-    for (offset = 0; offset < dres->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
+    for (offset = 0; offset < dres->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.size; ) {
 	rargs.offset = offset;
 	rargs.count = transfersize;
 	if ((rres = nfs3_read_3(&rargs, nfsclient)) == NULL) {
