@@ -184,6 +184,10 @@ struct keyword {
 /* run-time settable flags */
 int verbose = 1;		/* verbosity flag */
 int interact = 1;		/* interactive mode */
+int exit_on_error = 0;		/* exit on error */
+int echo = 0;			/* echo user's commands */
+const char *filename = NULL;	/* file name of the script */
+FILE *input = NULL;		/* file handle of the command input*/
 
 /* user provided credentials */
 int authtype = AUTH_UNIX;	/* type of authentication */
@@ -210,32 +214,32 @@ jmp_buf intenv;			/* where to go in interrupts */
 void interrupt(int);
 int command(char *);
 int ngetline(char *, int, int *, char **, int);
-void do_host(int, char **);
-void do_setuid(int, char **);
-void do_setgid(int, char **);
-void do_cd(int, char **);
-void do_lcd(int, char **);
-void do_cat(int, char **);
-void do_ls(int, char **);
-void do_get(int, char **);
-void do_df(int, char **);
-void do_rm(int, char **);
-void do_ln(int, char **);
-void do_mv(int, char **);
-void do_mkdir(int, char **);
-void do_rmdir(int, char **);
-void do_chmod(int, char **);
-void do_mknod(int, char **);
-void do_chown(int, char **);
-void do_put(int, char **);
-void do_handle(int, char **);
-void do_mount(int, char **);
-void do_umount(int, char **);
-void do_umountall(int, char **);
-void do_export(int, char **);
-void do_dump(int, char **);
-void do_status(int, char **);
-void do_help(int, char **);
+int do_host(int, char **);
+int do_setuid(int, char **);
+int do_setgid(int, char **);
+int do_cd(int, char **);
+int do_lcd(int, char **);
+int do_cat(int, char **);
+int do_ls(int, char **);
+int do_get(int, char **);
+int do_df(int, char **);
+int do_rm(int, char **);
+int do_ln(int, char **);
+int do_mv(int, char **);
+int do_mkdir(int, char **);
+int do_rmdir(int, char **);
+int do_chmod(int, char **);
+int do_mknod(int, char **);
+int do_chown(int, char **);
+int do_put(int, char **);
+int do_handle(int, char **);
+int do_mount(int, char **);
+int do_umount(int, char **);
+int do_umountall(int, char **);
+int do_export(int, char **);
+int do_dump(int, char **);
+int do_status(int, char **);
+int do_help(int, char **);
 
 AUTH *create_authenticator(void);
 char *nfs_error(enum nfsstat3);
@@ -288,9 +292,10 @@ main(int argc, char **argv)
     int opt, cmd, argcount;
     char *argvec[NARGVEC];
     char buffer[BUFSIZ];
+    int rc = 0;
 
     /* command line option processing */
-    while ((opt = getopt(argc, argv, "vi")) != EOF) {
+    while ((opt = getopt(argc, argv, "vief:x")) != EOF) {
 	switch (opt) {
 	case 'v':
 	    verbose = 0;
@@ -298,115 +303,144 @@ main(int argc, char **argv)
 	case 'i':
 	    interact = 0;
 	    break;
+	case 'e':
+	  exit_on_error = 1;
+	  break;
+	case 'f':
+	  filename = optarg;
+	  interact = 0;
+	  break;
+	case 'x':
+	  echo = 1;
+	  break;
 	default:
 	    fprintf(stderr, "Usage: %s [-vi]\n"
 			    "\t-v\tverbose off\n"
-			    "\t-i\tinteractive mode off\n", argv[0]);
+			    "\t-i\tinteractive mode off\n"
+			    "\t-e\texit on error\n"
+			    "\t-f file\tfile name of the script\n"
+			    "\t-x\techo user's commands\n", argv[0]);
 	    exit(1);
 	}
     }
 
+    if (NULL != filename) {
+	input = fopen(filename, "r");
+	if (NULL == input) {
+	  fprintf(stderr, "Unable to open script file `%s': %s",
+		  filename, strerror(errno));
+	  exit(1);
+	}
+    } else {
+      input = stdin;
+    }
     signal(SIGINT, interrupt);
 
     /* interpreter's main command loop */
     if (setjmp(intenv)) putchar('\n');
     while (ngetline(buffer, BUFSIZ, &argcount, argvec, NARGVEC)) {
 	if (argcount == 0) continue;
-	if ((cmd = command(argvec[0])) == CMD_QUIT)
-	    break;
-	else switch (cmd) {
+	if ((cmd = command(argvec[0])) == CMD_QUIT) {
+	  rc = 0;
+          break;
+        } else switch (cmd) {
 	case CMD_HOST:
-	    do_host(argcount, argvec);
+	    rc = do_host(argcount, argvec);
 	    break;
 	case CMD_UID:
-	    do_setuid(argcount, argvec);
+	    rc = do_setuid(argcount, argvec);
 	    break;
 	case CMD_GID:
-	    do_setgid(argcount, argvec);
+	    rc = do_setgid(argcount, argvec);
 	    break;
 	case CMD_CD:
-	    do_cd(argcount, argvec);
+	    rc = do_cd(argcount, argvec);
 	    break;
 	case CMD_LCD:
-	    do_lcd(argcount, argvec);
+	    rc = do_lcd(argcount, argvec);
 	    break;
 	case CMD_CAT:
-	    do_cat(argcount, argvec);
+	    rc = do_cat(argcount, argvec);
 	    break;
 	case CMD_LS:
-	    do_ls(argcount, argvec);
+	    rc = do_ls(argcount, argvec);
 	    break;
 	case CMD_GET:
-	    do_get(argcount, argvec);
+	    rc = do_get(argcount, argvec);
 	    break;
 	case CMD_DF:
-	    do_df(argcount, argvec);
+	    rc = do_df(argcount, argvec);
 	    break;
 	case CMD_RM:
-	    do_rm(argcount, argvec);
+	    rc = do_rm(argcount, argvec);
 	    break;
 	case CMD_LN:
-	    do_ln(argcount, argvec);
+	    rc = do_ln(argcount, argvec);
 	    break;
 	case CMD_MV:
-	    do_mv(argcount, argvec);
+	    rc = do_mv(argcount, argvec);
 	    break;
 	case CMD_MKDIR:
-	    do_mkdir(argcount, argvec);
+	    rc = do_mkdir(argcount, argvec);
 	    break;
 	case CMD_RMDIR:
-	    do_rmdir(argcount, argvec);
+	    rc = do_rmdir(argcount, argvec);
 	    break;
 	case CMD_CHMOD:
-	    do_chmod(argcount, argvec);
+	    rc = do_chmod(argcount, argvec);
 	    break;
 	case CMD_CHOWN:
-	    do_chown(argcount, argvec);
+	    rc = do_chown(argcount, argvec);
 	    break;
 	case CMD_PUT:
-	    do_put(argcount, argvec);
+	    rc = do_put(argcount, argvec);
 	    break;
 	case CMD_HANDLE:
-	    do_handle(argcount, argvec);
+	    rc = do_handle(argcount, argvec);
 	    break;
 	case CMD_MKNOD:
-	    do_mknod(argcount, argvec);
+	    rc = do_mknod(argcount, argvec);
 	    break;
 	case CMD_MOUNT:
-	    do_mount(argcount, argvec);
+	    rc = do_mount(argcount, argvec);
 	    break;
 	case CMD_UMOUNT:
-	    do_umount(argcount, argvec);
+	    rc = do_umount(argcount, argvec);
 	    break;
 	case CMD_UMOUNTALL:
-	    do_umountall(argcount, argvec);
+	    rc = do_umountall(argcount, argvec);
 	    break;
 	case CMD_EXPORT:
-	    do_export(argcount, argvec);
+	    rc = do_export(argcount, argvec);
 	    break;
 	case CMD_DUMP:
-	    do_dump(argcount, argvec);
+	    rc = do_dump(argcount, argvec);
 	    break;
 	case CMD_STATUS:
-	    do_status(argcount, argvec);
+	    rc = do_status(argcount, argvec);
 	    break;
 	case CMD_HELP:
-	    do_help(argcount, argvec);
+	    rc = do_help(argcount, argvec);
 	    break;
 	case CMD_UNKNOWN:
 	    if (buffer[0] == '!') {
-		system(buffer + 1);
+		rc = system(buffer + 1);
 		printf("!\n");
-	    } else
-	        fprintf(stderr, "%s: unrecognized command\n", argvec[0]);
+	    } else {
+		fprintf(stderr, "%s: unrecognized command\n", argvec[0]);
+		rc = 1;
+	    }
 	    break;
 	default:
 	    fprintf(stderr, "internal error: '%s' not is case\n", argvec[0]);
+	    rc = 1;
 	    break;
 	}
+	if (exit_on_error && rc != 0)
+	  break;
     }
     if (remotehost) close_mount();
-    exit(0);
+    exit(rc);
 }
 
 void
@@ -434,14 +468,17 @@ ngetline(char *buf, int bufsize, int *argc, char **argv, int argvsize)
 	add_history(line);
 	free(line);
     } else {
-	if (fgets(buf, bufsize, stdin) == NULL)
+	if (fgets(buf, bufsize, input) == NULL)
 	    return 0;
     }
 #else
     if (interact) printf("nfs> ");
-    if (fgets(buf, bufsize, stdin) == NULL)
+    if (fgets(buf, bufsize, input) == NULL)
 	return 0;
 #endif
+    if (echo && buf[0] != '\n' ) {
+      printf("+ %s", buf);
+    }
     *argc = 0;
     for (p = buf; *p == ' ' || *p == '\t'; p++)
 	/* skip white spaces */;
@@ -475,24 +512,25 @@ command(char *cmd)
  * Set remote host and initialize RPC channel
  * to mount daemon.
  */
-void
+int
 do_host(int argc, char **argv)
 {
-    if (argc != 2)
+  if (argc != 2) {
 	fprintf(stderr, "Usage: host <host>\n");
-    else
-	open_mount(argv[1]);
+        return 1;
+  }
+  return !open_mount(argv[1]);
 }
 
 /*
  * Set user id (updating RPC authentication info)
  */
-void
+int
 do_setuid(int argc, char **argv)
 {
     if (argc > 3) {
 	fprintf(stderr, "Usage: uid [<uid> [<secret-key>]]\n");
-	return;
+	return 1;
     }
 
     if (argc <= 2) {
@@ -508,12 +546,13 @@ do_setuid(int argc, char **argv)
 	    auth_destroy(nfsclient->cl_auth);
 	nfsclient->cl_auth = create_authenticator();
     }
+    return 0;
 }
 
 /*
  * Set group id (updating RPC authentication info)
  */
-void
+int
 do_setgid(int argc, char **argv)
 {
     gid = argc == 2 ? atoi(argv[1]) : -2;
@@ -522,12 +561,13 @@ do_setgid(int argc, char **argv)
 	    auth_destroy(nfsclient->cl_auth);
 	nfsclient->cl_auth = create_authenticator();
     }
+    return 0;
 }
 
 /*
  * Change remote working directory
  */
-void
+int
 do_cd(int argc, char **argv)
 {
     register char *p;
@@ -538,13 +578,13 @@ do_cd(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "cd: no remote file system mounted\n");
-	return;
+	return 1;
     }
 
     /* easy case: cd to root */
     if (argc == 1) {
 	fhandle3_to_nfs_fh3(&directory_handle, &mountpoint->mountres3_u.mountinfo.fhandle);
-	return;
+	return 1;
     }
 
     /* if a directory start with '/', we search from the root */
@@ -567,39 +607,46 @@ do_cd(int argc, char **argv)
 	nfs_fh3copy(&args.what.dir, &handle);
 	if ((res = nfs3_lookup_3(&args, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_lookup");
-	    return;
+	    return 1;
 	}
 	if (res->status != NFS3_OK) {
 	    fprintf(stderr, "%s: %s\n", component, nfs_error(res->status));
-	    return;
+	    return 1;
 	}
 	if (res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type != NF3DIR) {
 	    fprintf(stderr, "%s: is not a directory\n", component);
-	    return;
+	    return 1;
 	}
 	nfs_fh3copy(&handle, &res->LOOKUP3res_u.resok.object);
     }
     nfs_fh3copy(&directory_handle, &handle);
+    return 0;
 }
 
 /*
  * Change local working directory
  */
-void
+int
 do_lcd(int argc, char **argv)
 {
     if (argc == 1) {
 	char *home = getenv("HOME");
 	if (home != NULL)
-	    if (chdir(home) != 0) perror("lcd");
-    } else
-	if (chdir(argv[1]) != 0) perror("lcd");
+	  if (chdir(home) != 0) {
+	    perror("lcd");
+	    return 1;
+	  }
+    } else if (chdir(argv[1]) != 0) {
+	perror("lcd");
+	return 1;
+      }
+    return 0;
 }
 
 /*
  * Display a remote file
  */
-void
+int
 do_cat(int argc, char **argv)
 {
     LOOKUP3args dargs;
@@ -610,11 +657,11 @@ do_cat(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "cat: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2) {
 	fprintf(stderr, "Usage: cat <filespec>\n");
-	return;
+	return 1;
     }
 
     /* lookup name in current directory */
@@ -622,15 +669,15 @@ do_cat(int argc, char **argv)
     nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
-	return;
+	return 1;
     }
     if (dres->status != NFS3_OK) {
 	fprintf(stderr, "%s: %s\n", argv[1], nfs_error(dres->status));
-	return;
+	return 1;
     }
     if (dres->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type != NF3REG) {
 	fprintf(stderr, "%s: is not a regular file\n", argv[1]);
-	return;
+	return 1;
     }
     nfs_fh3copy(&rargs.file, &dres->LOOKUP3res_u.resok.object);
     for (offset = 0; offset < dres->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
@@ -638,22 +685,23 @@ do_cat(int argc, char **argv)
 	rargs.count = transfersize;
 	if ((rres = nfs3_read_3(&rargs, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_read_3");
-	    break;
+	    return 1;
         }
 	if (rres->status != NFS3_OK) {
 	    fprintf(stderr, "%s: %s\n", argv[1], nfs_error(rres->status));
-	    break;
+	    return 1;
 	}
         fwrite(rres->READ3res_u.resok.data.data_val,
             rres->READ3res_u.resok.data.data_len, 1, stdout);
 	offset += transfersize;
     }
+    return 0;
 }
 
 /*
  * List remote directory
  */
-void
+int
 do_ls(int argc, char **argv)
 {
     char **table, **ptr, **p;
@@ -662,7 +710,7 @@ do_ls(int argc, char **argv)
     argv++; argc--;
     if (mountpath == NULL) {
 	fprintf(stderr, "ls: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc >= 1 && strcmp(argv[0], "-l") == 0) {
 	argv++; argc--;
@@ -670,7 +718,7 @@ do_ls(int argc, char **argv)
     }
 
     if (!getdirentries(&directory_handle, &table, &ptr, 20))
-	return;
+	return 1;
     for (p = table; p < ptr; p++) {
 	if (!match(*p, argc, argv)) continue;
 	if (lflag == 1)
@@ -680,6 +728,7 @@ do_ls(int argc, char **argv)
 	free(*p);
     }
     free(table);
+    return 0;
 }
 
 /*
@@ -793,7 +842,7 @@ writefiledate(time_t d)
 /*
  * Get remote files
  */
-void
+int
 do_get(int argc, char **argv)
 {
     char **table, **ptr, **p;
@@ -802,22 +851,18 @@ do_get(int argc, char **argv)
     LOOKUP3res *res;
     READ3args rargs;
     READ3res *rres;
-    int iflag = 0;
     long offset;
     FILE *fp;
+    int rc = 1;
 
     argv++; argc--;
     if (mountpath == NULL) {
 	fprintf(stderr, "get: no remote file system mounted\n");
-	return;
-    }
-    if (argc >= 1 && strcmp(argv[0], "-i") == 0) {
-	argv++; argc--;
-	iflag = 1;
+	return 1;
     }
 
     if (!getdirentries(&directory_handle, &table, &ptr, 20))
-	return;
+      goto end;
     for (p = table; p < ptr; p++) {
 	/* match before going over the wire */
 	if (!match(*p, argc, argv)) continue;
@@ -827,19 +872,19 @@ do_get(int argc, char **argv)
 	nfs_fh3copy(&args.what.dir, &directory_handle);
 	if ((res = nfs3_lookup_3(&args, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_lookup");
-	    return;
+	    goto end;
 	}
 	if (res->status != NFS3_OK) {
 	    fprintf(stderr, "Lookup failed: %s\n", nfs_error(res->status));
-	    return;
+	    goto end;
 	}
 	if (res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.type != NF3REG)
 	    continue;
 
 	/* ask for confirmation */
 	printf("%s? ", *p);
-	if (!iflag) {
-	    if (fgets(answer, sizeof(answer), stdin) == NULL)
+	if (interact) {
+	    if (fgets(answer, sizeof(answer), input) == NULL)
 		continue;
 	    if (answer[0] != 'y' && answer[0] != 'Y')
 		continue;
@@ -849,7 +894,7 @@ do_get(int argc, char **argv)
 	/* get actual file */
 	if ((fp = fopen(*p, "w")) == NULL) {
 	    fprintf(stderr, "get: cannot create %s\n", *p);
-	    continue;
+	    goto end;
 	}
 	nfs_fh3copy(&rargs.file, &res->LOOKUP3res_u.resok.object);
 	for (offset = 0; offset < res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
@@ -857,11 +902,11 @@ do_get(int argc, char **argv)
 	    rargs.count = transfersize;
 	    if ((rres = nfs3_read_3(&rargs, nfsclient)) == NULL) {
 		clnt_perror(nfsclient, "nfs3_read");
-		break;
+		goto end;
             }
 	    if (rres->status != NFS3_OK) {
 		fprintf(stderr, "%s: %s\n", argv[1], nfs_error(rres->status));
-		break;
+		goto end;
 	    }
 	    fwrite(rres->READ3res_u.resok.data.data_val,
 		rres->READ3res_u.resok.data.data_len, 1, fp);
@@ -870,14 +915,17 @@ do_get(int argc, char **argv)
 	fclose(fp);
 	free(*p);
     }
+    rc = 0;
+ end:
     free(table);
+    return rc;
 }
 
 /*
  * Show file system information
  */
 /* ARGUSED */
-void
+int
 do_df(int argc, char **argv)
 {
     FSSTAT3args args;
@@ -885,20 +933,20 @@ do_df(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "df: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 1) {
 	fprintf(stderr, "Usage: df\n");
-	return;
+	return 1;
     }
     fhandle3_to_nfs_fh3(&args.fsroot, &mountpoint->mountres3_u.mountinfo.fhandle);
     if ((res = nfs3_fsstat_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_fsstat");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Df failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
 
 #define x res->FSSTAT3res_u.resok
@@ -907,12 +955,13 @@ do_df(int argc, char **argv)
 	x.tbytes/1024, (x.tbytes-x.fbytes)/1024,
 	x.fbytes/1024, x.abytes/1024);
 #undef x
+    return 0;
 }
 
 /*
  * Delete a remote file
  */
-void
+int
 do_rm(int argc, char **argv)
 {
     REMOVE3args args;
@@ -920,28 +969,29 @@ do_rm(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "rm: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2) {
 	fprintf(stderr, "Usage: rm <file>\n");
-	return;
+	return 1;
     }
     args.object.name = argv[1];
     nfs_fh3copy(&args.object.dir, &directory_handle);
     if ((res = nfs3_remove_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_remove");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Remove failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Link a file
  */
-void
+int
 do_ln(int argc, char **argv)
 {
     LOOKUP3args dargs;
@@ -951,22 +1001,22 @@ do_ln(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "ln: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 3) {
 	fprintf(stderr, "Usage: ln <file1> <file2>\n");
-	return;
+	return 1;
     }
 
     dargs.what.name = argv[1];
     nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
-	return;
+	return 1;
     }
     if (dres->status != NFS3_OK) {
 	fprintf(stderr, "%s: %s\n", argv[1], nfs_error(dres->status));
-	return;
+	return 1;
     }
 
     nfs_fh3copy(&largs.file, &dres->LOOKUP3res_u.resok.object);
@@ -975,18 +1025,19 @@ do_ln(int argc, char **argv)
 
     if ((lres = nfs3_link_3(&largs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_link");
-	return;
+	return 1;
     }
     if (lres->status != NFS3_OK) {
 	fprintf(stderr, "Link failed: %s\n", nfs_error(lres->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Move a file or directory
  */
-void
+int
 do_mv(int argc, char **argv)
 {
     RENAME3args args;
@@ -994,11 +1045,11 @@ do_mv(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "mv: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 3) {
 	fprintf(stderr, "Usage: mv <file1> <file2>\n");
-	return;
+	return 1;
     }
     args.from.name = argv[1];
     nfs_fh3copy(&args.from.dir, &directory_handle);
@@ -1006,18 +1057,19 @@ do_mv(int argc, char **argv)
     nfs_fh3copy(&args.to.dir, &directory_handle);
     if ((res = nfs3_rename_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_rename");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Rename failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Make remote directory
  */
-void
+int
 do_mkdir(int argc, char **argv)
 {
     MKDIR3args args;
@@ -1025,11 +1077,11 @@ do_mkdir(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "mkdir: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2) {
 	fprintf(stderr, "Usage: mkdir <directory>\n");
-	return;
+	return 1;
     }
 
     args.where.name = argv[1];
@@ -1043,16 +1095,17 @@ do_mkdir(int argc, char **argv)
 
     if ((res = nfs3_mkdir_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_mkdir");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Make directory failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /* XXX */
-void
+int
 do_create(int argc, char **argv)
 {
     CREATE3args args;
@@ -1060,11 +1113,11 @@ do_create(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "mkdir: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2) {
 	fprintf(stderr, "Usage: mkdir <directory>\n");
-	return;
+	return 1;
     }
 
     args.where.name = argv[1];
@@ -1079,18 +1132,19 @@ do_create(int argc, char **argv)
 
     if ((res = nfs3_create_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_mkdir");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Make directory failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Remove remote directory
  */
-void
+int
 do_rmdir(int argc, char **argv)
 {
     RMDIR3args args;
@@ -1098,29 +1152,30 @@ do_rmdir(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "rmdir: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2) {
 	fprintf(stderr, "Usage: rmdir <directory>\n");
-	return;
+	return 1;
     }
 
     args.object.name = argv[1];
     nfs_fh3copy(&args.object.dir, &directory_handle);
     if ((res = nfs3_rmdir_3(&args, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_rmdir");
-	return;
+	return 1;
     }
     if (res->status != NFS3_OK) {
 	fprintf(stderr, "Remove directory failed: %s\n", nfs_error(res->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Change mode of remote file or directory
  */
-void
+int
 do_chmod(int argc, char **argv)
 {
     LOOKUP3args dargs;
@@ -1131,26 +1186,26 @@ do_chmod(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "chmod: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 3) {
 	fprintf(stderr, "Usage: chmod <mode> <file>\n");
-	return;
+	return 1;
     }
     if (sscanf(argv[1], "%o", &mode) != 1) {
 	fprintf(stderr, "chmod: invalid mode\n");
-	return;
+	return 1;
     }
 
     dargs.what.name = argv[2];
     nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
-	return;
+	return 1;
     }
     if (dres->status != NFS3_OK) {
 	fprintf(stderr, "%s: %s\n", argv[2], nfs_error(dres->status));
-	return;
+	return 1;
     }
 
     nfs_fh3copy(&aargs.object, &dres->LOOKUP3res_u.resok.object);
@@ -1163,18 +1218,19 @@ do_chmod(int argc, char **argv)
 
     if ((ares = nfs3_setattr_3(&aargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_setattr");
-	return;
+	return 1;
     }
     if (ares->status != NFS3_OK) {
 	fprintf(stderr, "Set attributes failed: %s\n", nfs_error(ares->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Make new device node
  */
-void
+int
 do_mknod(int argc, char **argv)
 {
     int mode, maj, min, device;
@@ -1183,11 +1239,11 @@ do_mknod(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "mknod: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if ((argc != 3 && argc != 5) || argv[2][1] != '\0')  {
 usage:	fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
-	return;
+	return 1;
     }
     if (argc == 3) {
 	if (argv[2][0] != 'p')
@@ -1221,16 +1277,19 @@ usage:	fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
     cargs.how.createhow3_u.obj_attributes.mtime = (set_mtime) { .set_it=FALSE };
     if ((cres = nfs3_create_3(&cargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_create");
-	return;
+	return 1;
     }
-    if (cres->status != NFS3_OK)
+    if (cres->status != NFS3_OK) {
 	fprintf(stderr, "WARNING: Mknod failed: %s\n", nfs_error(cres->status));
+        return 1;
+    }
+    return 0;
 }
 
 /*
  * Change owner (and group) of remote file or directory
  */
-void
+int
 do_chown(int argc, char **argv)
 {
     LOOKUP3args dargs;
@@ -1241,17 +1300,17 @@ do_chown(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "chown: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 3) {
 	fprintf(stderr, "Usage: chown <uid>[.<gid>] <file>\n");
-	return;
+	return 1;
     }
     if (sscanf(argv[1], "%d.%d", &own_uid, &own_gid) != 2) {
 	own_gid = -1;
 	if (sscanf(argv[1], "%d", &own_uid) != 1) {
 	    fprintf(stderr, "chown: invalid uid[.gid]\n");
-	    return;
+	    return 1;
 	}
     }
 
@@ -1259,11 +1318,11 @@ do_chown(int argc, char **argv)
     nfs_fh3copy(&dargs.what.dir, &directory_handle);
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
-	return;
+	return 1;
     }
     if (dres->status != NFS3_OK) {
 	fprintf(stderr, "%s: %s\n", argv[2], nfs_error(dres->status));
-	return;
+	return 1;
     }
 
     nfs_fh3copy(&aargs.object, &dres->LOOKUP3res_u.resok.object);
@@ -1276,18 +1335,19 @@ do_chown(int argc, char **argv)
 
     if ((ares = nfs3_setattr_3(&aargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_setattr");
-	return;
+	return 1;
     }
     if (ares->status != NFS3_OK) {
 	fprintf(stderr, "Set attributes failed: %s\n", nfs_error(ares->status));
-	return;
+	return 1;
     }
+    return 0;
 }
 
 /*
  * Put file from local to remote
  */
-void
+int
 do_put(int argc, char **argv)
 {
     LOOKUP3args dargs;
@@ -1302,16 +1362,16 @@ do_put(int argc, char **argv)
 
     if (mountpath == NULL) {
 	fprintf(stderr, "put: no remote file system mounted\n");
-	return;
+	return 1;
     }
     if (argc != 2 && argc != 3) {
 	fprintf(stderr, "Usage: put <local-file> [<remote-file>]\n");
-	return;
+	return 1;
     }
 
     if ((fp = fopen(argv[1], "r")) == NULL) {
 	fprintf(stderr, "put: cannot open %s\n", argv[1]);
-	return;
+	return 1;
     }
 
     /*
@@ -1330,7 +1390,7 @@ do_put(int argc, char **argv)
     if ((cres = nfs3_create_3(&cargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_create");
 	fclose(fp);
-	return;
+	return 1;
     }
     if (cres->status != NFS3_OK)
 	fprintf(stderr, "WARNING: Create failed: %s\n", nfs_error(cres->status));
@@ -1343,12 +1403,12 @@ do_put(int argc, char **argv)
     if ((dres = nfs3_lookup_3(&dargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_lookup");
 	fclose(fp);
-	return;
+	return 1;
     }
     if (dres->status != NFS3_OK) {
 	fprintf(stderr, "%s: %s\n", argv[1], nfs_error(dres->status));
 	fclose(fp);
-	return;
+	return 1;
     }
     nfs_fh3copy(&handle, &dres->LOOKUP3res_u.resok.object);
 
@@ -1364,21 +1424,22 @@ do_put(int argc, char **argv)
 	if ((wres = nfs3_write_3(&wargs, nfsclient)) == NULL) {
 	    clnt_perror(nfsclient, "nfs3_write");
 	    fclose(fp);
-	    return;
+	    return 1;
 	}
 	if (wres->status != NFS3_OK) {
 	    fprintf(stderr, "Write failed: %s\n", nfs_error(wres->status));
 	    fclose(fp);
-	    return;
+	    return 1;
 	}
     }
     fclose(fp);
+    return 0;
 }
 
 /*
  * Get/set file handle
  */
-void
+int
 do_handle(int argc, char **argv)
 {
     int sock, port, flags;
@@ -1412,38 +1473,38 @@ do_handle(int argc, char **argv)
     if (argc <= 1) {
 	if (mountpath == NULL) {
 	    fprintf(stderr, "handle: no remote file system mounted\n");
-	    return;
+	    return 1;
 	}
 	printf("%s:", mountpath);
 	for (i = 0, p = (char *)&directory_handle; i < sizeof(nfs_fh3); i++)
 	    printf(" %02x", *p++ & 0xFF);
 	printf("\n");
-	return;
+	return 1;
     }
 
     if (argc != sizeof(nfs_fh3)) {
 usage:
 	fprintf(stderr, "Usage: handle [-TU] <file handle>\n");
-	return;
+	return 1;
     }
 
     if (remotehost == NULL) {
 	fprintf(stderr, "handle: no host specified\n");
-	return;
+	return 1;
     }
 
     /* copy handle from command line argument */
     for (i = 0, p = (char *)&directory_handle; i < sizeof(nfs_fh3); i++)
 	*p++ = (char) strtol(argv[i], NULL, 16);
 
-    open_nfs(NULL, port, flags);
+    return !open_nfs(NULL, port, flags);
 }
 
 /*
  * Set up a channel to the NFS server and
  * mount remote file system.
  */
-void
+int
 do_mount(int argc, char **argv)
 {
     int port, flags;
@@ -1482,14 +1543,14 @@ do_mount(int argc, char **argv)
     if (argc != 1) {
 usage:
 	fprintf(stderr, "Usage: mount [-upTU] [-P port] <path>\n");
-	return;
+	return 1;
     }
     path = argv[0];
     if (remotehost == NULL) {
 	fprintf(stderr, "mount: no host specified\n");
-	return;
+	return 1;
     }
-    open_nfs(path, port, flags);
+    return !open_nfs(path, port, flags);
 }
 
 /*
@@ -1497,43 +1558,46 @@ usage:
  * RPC channel.
  */
 /* ARGUSED */
-void
+int
 do_umount(int argc, char **argv)
 {
     if (argc != 1) {
 	fprintf(stderr, "Usage: umount\n");
-	return;
+	return 1;
     }
-    if (mountpath == NULL)
+    if (mountpath == NULL) {
 	fprintf(stderr, "umount: no remote file system mounted\n");
-    else
-	close_nfs();
+        return 1;
+    }
+    close_nfs();
+    return 0;
 }
 
 /*
  * Unmount all remote file system from this host
  */
 /* ARGUSED */
-void
+int
 do_umountall(int argc, char **argv)
 {
     if (argc != 1) {
 	fprintf(stderr, "Usage: umountall\n");
-	return;
+	return 1;
     }
     if (remotehost == NULL) {
 	fprintf(stderr, "umountall: no host specified\n");
-	return;
+	return 1;
     }
     if (mountpath != NULL) close_nfs();
     (void) mount3_umntall_3(NULL, mntclient);
+    return 0;
 }
 
 /*
  * Display all exported file systems on remote system
  */
 /* ARGUSED */
-void
+int
 do_export(int argc, char **argv)
 {
     exports ex, *exp;
@@ -1547,15 +1611,15 @@ do_export(int argc, char **argv)
     }
     if (argc != 0) {
 	fprintf(stderr, "Usage: export [-h] \n");
-	return;
+	return 1;
     }
     if (remotehost == NULL) {
 	fprintf(stderr, "export: no host specified\n");
-	return;
+	return 1;
     }
     if ((exp = mount3_export_3(NULL, mntclient)) == NULL) {
 	clnt_perror(mntclient, "mountproc_export");
-	return;
+	return 1;
     }
     printf("Export list for %s:\n", remotehost);
     for (ex = *exp; ex != NULL; ex = ex->ex_next) {
@@ -1572,43 +1636,45 @@ do_export(int argc, char **argv)
 	}
 	putchar('\n');
     }
+    return 0;
 }
 
 /*
  * Display all remote mounted file systems
  */
 /* ARGUSED */
-void
+int
 do_dump(int argc, char **argv)
 {
     mountlist ml, *mlp;
 
     if (argc != 1) {
 	fprintf(stderr, "Usage: dump\n");
-	return;
+	return 1;
     }
     if (remotehost == NULL) {
 	fprintf(stderr, "dump: no host specified\n");
-	return;
+	return 1;
     }
     if ((mlp = mount3_dump_3(NULL, mntclient)) == NULL) {
 	clnt_perror(mntclient, "mountproc_dump");
-	return;
+	return 1;
     }
     for (ml = *mlp; ml != NULL; ml = ml->ml_next)
 	printf("%s:%s\n", ml->ml_hostname, ml->ml_directory);
+    return 0;
 }
 
 /*
  * Generic status report
  */
 /* ARGUSED */
-void
+int
 do_status(int argc, char **argv)
 {
     if (argc != 1) {
 	fprintf(stderr, "Usage: status\n");
-	return;
+	return 1;
     }
     printf("User id      : %d\n", uid);
     printf("Group id     : %d\n", gid);
@@ -1617,13 +1683,14 @@ do_status(int argc, char **argv)
     if (mountpath)
 	printf("Mount path   : `%s'\n", mountpath);
     printf("Transfer size: %d\n", transfersize);
+    return 0;
 }
 
 /*
  * Simple on-line help facility
  */
 /* ARGUSED */
-void
+int
 do_help(int argc, char **argv)
 {
     register int i;
@@ -1633,6 +1700,7 @@ do_help(int argc, char **argv)
 	    continue;
 	printf("%s %s\n", keyword[i].kw_command, keyword[i].kw_help);
     }
+    return 0;
 }
 
 /*
