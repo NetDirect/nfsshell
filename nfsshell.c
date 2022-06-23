@@ -1161,6 +1161,8 @@ do_chmod(int argc, char **argv)
     aargs.new_attributes.atime = (set_atime) { .set_it=FALSE };
     aargs.new_attributes.mtime = (set_mtime) { .set_it=FALSE };
 
+    aargs.guard.check = FALSE;
+
     if ((ares = nfs3_setattr_3(&aargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_setattr");
 	return;
@@ -1273,6 +1275,8 @@ do_chown(int argc, char **argv)
     aargs.new_attributes.size  = (set_size3) { .set_it=FALSE };
     aargs.new_attributes.atime = (set_atime) { .set_it=FALSE };
     aargs.new_attributes.mtime = (set_mtime) { .set_it=FALSE };
+
+    aargs.guard.check = FALSE;
 
     if ((ares = nfs3_setattr_3(&aargs, nfsclient)) == NULL) {
 	clnt_perror(nfsclient, "nfs3_setattr");
