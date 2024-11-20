@@ -35,8 +35,8 @@
 
 # uncomment the following 3 lines for linux (tested on 2.0.33/redhat 5)
 CC		= gcc
-CFLAGS		= -g -DREADLINE -I/usr/local/include
-LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
+CFLAGS		= -g -DREADLINE -I/usr/local/include -I/usr/include/tirpc
+LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses -ltirpc
 
 RPCGEN		= rpcgen
 RGFLAGS		= -C
