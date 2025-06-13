@@ -533,7 +533,7 @@ do_cd(int argc, char **argv)
 {
     register char *p;
     char *component;
-    LOOKUP3args args;
+    LOOKUP3args args = { 0 };
     LOOKUP3res *res;
     nfs_fh3 handle;
 
@@ -603,9 +603,9 @@ do_lcd(int argc, char **argv)
 void
 do_cat(int argc, char **argv)
 {
-    LOOKUP3args dargs;
+    LOOKUP3args dargs = { 0 };
     LOOKUP3res *dres;
-    READ3args rargs;
+    READ3args rargs = { 0 };
     READ3res *rres;
     long offset;
 
@@ -689,7 +689,7 @@ do_ls(int argc, char **argv)
 void
 printfilestatus(char *file)
 {
-    LOOKUP3args args;
+    LOOKUP3args args = { 0 };
     LOOKUP3res *res;
     int mode;
 
@@ -758,8 +758,8 @@ printfilestatus(char *file)
     writefiledate(res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.ctime.seconds);
     printf(" %s", file);
     if (res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type == NF3LNK) {
+        READLINK3args rlargs = { 0 };
         READLINK3res *rlres;
-        READLINK3args rlargs;
 
         nfs_fh3copy(&rlargs.symlink, &res->LOOKUP3res_u.resok.object);
         if ((rlres = nfs3_readlink_3(&rlargs, nfsclient)) == NULL) {
@@ -799,9 +799,9 @@ do_get(int argc, char **argv)
 {
     char **table, **ptr, **p;
     char answer[512];
-    LOOKUP3args args;
+    LOOKUP3args args = { 0 };
     LOOKUP3res *res;
-    READ3args rargs;
+    READ3args rargs = { 0 };
     READ3res *rres;
     int iflag = 0;
     long offset;
@@ -881,7 +881,7 @@ do_get(int argc, char **argv)
 void
 do_df(int argc, char **argv)
 {
-    FSSTAT3args args;
+    FSSTAT3args args = { 0 };
     FSSTAT3res *res;
 
     if (mountpath == NULL) {
@@ -916,7 +916,7 @@ do_df(int argc, char **argv)
 void
 do_rm(int argc, char **argv)
 {
-    REMOVE3args args;
+    REMOVE3args args = { 0 };
     REMOVE3res *res;
 
     if (mountpath == NULL) {
@@ -945,9 +945,9 @@ do_rm(int argc, char **argv)
 void
 do_ln(int argc, char **argv)
 {
-    LOOKUP3args dargs;
+    LOOKUP3args dargs = { 0 };
     LOOKUP3res *dres;
-    LINK3args largs;
+    LINK3args largs = { 0 };
     LINK3res *lres;
 
     if (mountpath == NULL) {
@@ -990,7 +990,7 @@ do_ln(int argc, char **argv)
 void
 do_mv(int argc, char **argv)
 {
-    RENAME3args args;
+    RENAME3args args = { 0 };
     RENAME3res *res;
 
     if (mountpath == NULL) {
@@ -1021,7 +1021,7 @@ do_mv(int argc, char **argv)
 void
 do_mkdir(int argc, char **argv)
 {
-    MKDIR3args args;
+    MKDIR3args args = { 0 };
     MKDIR3res *res;
 
     if (mountpath == NULL) {
@@ -1056,7 +1056,7 @@ do_mkdir(int argc, char **argv)
 void
 do_create(int argc, char **argv)
 {
-    CREATE3args args;
+    CREATE3args args = { 0 };
     CREATE3res *res;
 
     if (mountpath == NULL) {
@@ -1094,7 +1094,7 @@ do_create(int argc, char **argv)
 void
 do_rmdir(int argc, char **argv)
 {
-    RMDIR3args args;
+    RMDIR3args args = { 0 };
     RMDIR3res *res;
 
     if (mountpath == NULL) {
@@ -1124,9 +1124,9 @@ do_rmdir(int argc, char **argv)
 void
 do_chmod(int argc, char **argv)
 {
-    LOOKUP3args dargs;
+    LOOKUP3args dargs = { 0 };
     LOOKUP3res *dres;
-    SETATTR3args aargs;
+    SETATTR3args aargs = { 0 };
     SETATTR3res *ares;
     int mode;
 
@@ -1179,7 +1179,7 @@ void
 do_mknod(int argc, char **argv)
 {
     int mode, maj, min, device;
-    CREATE3args cargs;
+    CREATE3args cargs = { 0 };
     CREATE3res *cres;
 
     if (mountpath == NULL) {
@@ -1234,9 +1234,9 @@ usage:  fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
 void
 do_chown(int argc, char **argv)
 {
-    LOOKUP3args dargs;
+    LOOKUP3args dargs = { 0 };
     LOOKUP3res *dres;
-    SETATTR3args aargs;
+    SETATTR3args aargs = { 0 };
     SETATTR3res *ares;
     int own_uid, own_gid;
 
@@ -1291,9 +1291,9 @@ do_chown(int argc, char **argv)
 void
 do_put(int argc, char **argv)
 {
-    LOOKUP3args dargs;
+    LOOKUP3args dargs = { 0 };
     LOOKUP3res *dres;
-    CREATE3args cargs;
+    CREATE3args cargs = { 0 };
     CREATE3res *cres;
     char buf[BUFSIZ];
     nfs_fh3 handle;
@@ -1354,7 +1354,7 @@ do_put(int argc, char **argv)
     nfs_fh3copy(&handle, &dres->LOOKUP3res_u.resok.object);
 
     for (offset = 0; (n = fread(buf, 1, sizeof(buf), fp)) > 0; offset += n) {
-        WRITE3args wargs;
+        WRITE3args wargs = { 0 };
         WRITE3res *wres;
 
         nfs_fh3copy(&wargs.file, &handle);
@@ -2117,7 +2117,7 @@ create_authenticator(void)
 int
 getdirentries(nfs_fh3 *dirhandle, char ***table, char ***ptr, int nentries)
 {
-    READDIR3args args;
+    READDIR3args args = { 0 };
     READDIR3res *res;
     entry3 *ep;
     int dircmp();
