@@ -574,7 +574,7 @@ do_cd(int argc, char **argv)
             fprintf(stderr, "%s: %s\n", component, nfs_error(res->status));
             return;
         }
-        if (res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type != NF3DIR) {
+        if (res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.type != NF3DIR) {
             fprintf(stderr, "%s: is not a directory\n", component);
             return;
         }
@@ -705,7 +705,7 @@ printfilestatus(char *file)
         return;
     }
 
-    switch (res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type) {
+    switch (res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.type) {
         case NF3SOCK:
             putchar('s');
             break;
@@ -731,7 +731,7 @@ printfilestatus(char *file)
             putchar('?');
             break;
     }
-    mode = res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.mode;
+    mode = res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.mode;
     if (mode & 0400) putchar('r'); else putchar('-');
     if (mode & 0200) putchar('w'); else putchar('-');
     if (mode & 0100)
@@ -751,13 +751,13 @@ printfilestatus(char *file)
     else
         if (mode & 01000) putchar('T'); else putchar('-');
     printf("%3d%9d%6d%10ld ",
-        res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.nlink,
-        res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.uid,
-        res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.gid,
-        res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size);
-    writefiledate(res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.ctime.seconds);
+        res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.nlink,
+        res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.uid,
+        res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.gid,
+        res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.size);
+    writefiledate(res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.ctime.seconds);
     printf(" %s", file);
-    if (res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.type == NF3LNK) {
+    if (res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.type == NF3LNK) {
         READLINK3args rlargs = { 0 };
         READLINK3res *rlres;
 
@@ -853,7 +853,7 @@ do_get(int argc, char **argv)
             continue;
         }
         nfs_fh3copy(&rargs.file, &res->LOOKUP3res_u.resok.object);
-        for (offset = 0; offset < res->LOOKUP3res_u.resok.dir_attributes.post_op_attr_u.attributes.size; ) {
+        for (offset = 0; offset < res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.size; ) {
             rargs.offset = offset;
             rargs.count = transfersize;
             if ((rres = nfs3_read_3(&rargs, nfsclient)) == NULL) {
