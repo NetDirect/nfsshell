@@ -1680,7 +1680,7 @@ open_mount(char *host)
             fprintf(stderr, "%s: unknown host\n", host);
             return 0;
         }
-        memcpy(&server_addr.sin_addr.s_addr, hp->h_addr, hp->h_length);
+        memcpy(&server_addr.sin_addr.s_addr, hp->h_addr_list[0], hp->h_length);
         host = (char *) hp->h_name;
     }
     server_addr.sin_family = AF_INET;
@@ -1758,7 +1758,7 @@ convert_name(char *host)
             fprintf(stderr, "%s: unknown host\n", host);
             return ret;
         }
-        memcpy(&ret.s_addr, hp->h_addr, hp->h_length);
+        memcpy(&ret.s_addr, hp->h_addr_list[0], hp->h_length);
     }
     return ret;
 }
