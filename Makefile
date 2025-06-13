@@ -34,9 +34,14 @@
 #LIBS		=
 
 # uncomment the following 3 lines for linux (tested on 2.0.33/redhat 5)
+#CC		= gcc
+#CFLAGS		= -g -DREADLINE -I/usr/local/include
+#LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
+
+# uncomment the following 3 lines for 2025 linux (tested on 6.14.4/arch)
 CC		= gcc
-CFLAGS		= -g -DREADLINE -I/usr/local/include
-LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses
+CFLAGS		= -g -DREADLINE -I/usr/local/include -I/usr/include/tirpc
+LIBS		= -L/usr/local/lib -lreadline -lhistory -lncurses -ltirpc
 
 RPCGEN		= rpcgen
 RGFLAGS		= -C
@@ -45,6 +50,9 @@ NFS_OBJECTS	= mount_clnt.o mount_xdr.o nfs_prot_clnt.o nfs_prot_xdr.o nfsshell.o
 STEAL_OBJECTS	= steal.o nfs_prot_clnt.o nfs_prot_xdr.o
 RPCGEN_MOUNT	= mount.h mount_clnt.c mount_svc.c mount_xdr.c
 RPCGEN_NFS_PROT	= nfs_prot.h nfs_prot_clnt.c nfs_prot_svc.c nfs_prot_xdr.c
+
+.PHONY: all
+all: nfsshell
 
 nfsshell:	$(NFS_OBJECTS)
 	$(CC) -g -o nfsshell $(NFS_OBJECTS) $(LIBS)
