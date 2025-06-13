@@ -7,3 +7,14 @@ useful tool to manually check (or show) security problems after a security
 scanner has detected them.
 
 Originally released by Leendert van Doorn, updated to support NFSv3 by Michael Brown
+
+Package Dependencies:
+* Kali Linux
+  * `libreadline-dev`
+  * `libtirpc-dev`
+* Debian Linux
+  * `libreadline-dev`
+  * `libtirpc-dev`
+* Arch Linux
+  * `libtirpc`
+  * `readline`
