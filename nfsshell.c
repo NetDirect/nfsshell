@@ -804,7 +804,7 @@ do_get(int argc, char **argv)
     READ3args rargs = { 0 };
     READ3res *rres;
     int iflag = 0;
-    long offset;
+    size3 offset;
     FILE *fp;
 
     argv++; argc--;
@@ -866,7 +866,13 @@ do_get(int argc, char **argv)
             }
             fwrite(rres->READ3res_u.resok.data.data_val,
                 rres->READ3res_u.resok.data.data_len, 1, fp);
-            offset += transfersize;
+            offset += rres->READ3res_u.resok.data.data_len;
+            if (rres->READ3res_u.resok.eof == TRUE) {
+                break;
+            }
+        }
+        if (offset != res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.size) {
+            fprintf(stderr, "%s: size mismatch on read (expected %llu, read %llu)\n", *p, res->LOOKUP3res_u.resok.obj_attributes.post_op_attr_u.attributes.size, offset);
         }
         fclose(fp);
         free(*p);
