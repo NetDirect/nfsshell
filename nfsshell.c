@@ -1184,9 +1184,9 @@ do_chmod(int argc, char **argv)
 void
 do_mknod(int argc, char **argv)
 {
-    int mode, maj, min, device;
-    CREATE3args cargs = { 0 };
-    CREATE3res *cres;
+    int mode = 0777, maj = 0, min = 0;
+    MKNOD3args cargs = { 0 };
+    MKNOD3res *cres;
 
     if (mountpath == NULL) {
         fprintf(stderr, "mknod: no remote file system mounted\n");
@@ -1199,20 +1199,30 @@ usage:  fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
     if (argc == 3) {
         if (argv[2][0] != 'p')
             goto usage;
-        mode = IFCHR;
-        device = NF3FIFO;
+        cargs.what.type = NF3FIFO;
+        cargs.what.mknoddata3_u.pipe_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode = mode };
+        cargs.what.mknoddata3_u.pipe_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u = uid };
+        cargs.what.mknoddata3_u.pipe_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u = gid };
     } else if (argc == 5) {
-        switch (argv[2][0]) {
-        case 'b':
-            mode = IFBLK;
-            break;
-        case 'c':
-            mode = IFCHR;
-            break;
-        }
         maj = atoi(argv[3]);
         min = atoi(argv[4]);
-        device = makedev(maj, min);
+
+        switch (argv[2][0]) {
+        case 'b':
+            cargs.what.type = NF3BLK;
+            cargs.what.mknoddata3_u.blk_device.spec                 = (specdata3) { .specdata1 = maj, .specdata2 = min };
+            cargs.what.mknoddata3_u.blk_device.dev_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode = mode };
+            cargs.what.mknoddata3_u.blk_device.dev_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u = uid };
+            cargs.what.mknoddata3_u.blk_device.dev_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u = gid };
+            break;
+        case 'c':
+            cargs.what.type = NF3CHR;
+            cargs.what.mknoddata3_u.chr_device.spec                 = (specdata3) { .specdata1 = maj, .specdata2 = min };
+            cargs.what.mknoddata3_u.chr_device.dev_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode = mode };
+            cargs.what.mknoddata3_u.chr_device.dev_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u = uid };
+            cargs.what.mknoddata3_u.chr_device.dev_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u = gid };
+            break;
+        }
     }
 
     /*
@@ -1220,14 +1230,9 @@ usage:  fprintf(stderr, "Usage: mknod <name> [b/c major minor] [p]\n");
      */
     cargs.where.name = argv[1];
     nfs_fh3copy(&cargs.where.dir, &directory_handle);
-    cargs.how.createhow3_u.obj_attributes.mode  = (set_mode3) { .set_it=TRUE, .set_mode3_u.mode=mode | 0777};
-    cargs.how.createhow3_u.obj_attributes.uid   = (set_uid3)  { .set_it=TRUE, .set_uid3_u = uid };
-    cargs.how.createhow3_u.obj_attributes.gid   = (set_gid3)  { .set_it=TRUE, .set_gid3_u = gid };
-    cargs.how.createhow3_u.obj_attributes.size  = (set_size3) { .set_it=TRUE, .set_size3_u = device };
-    cargs.how.createhow3_u.obj_attributes.atime = (set_atime) { .set_it=FALSE };
-    cargs.how.createhow3_u.obj_attributes.mtime = (set_mtime) { .set_it=FALSE };
-    if ((cres = nfs3_create_3(&cargs, nfsclient)) == NULL) {
-        clnt_perror(nfsclient, "nfs3_create");
+
+    if ((cres = nfs3_mknod_3(&cargs, nfsclient)) == NULL) {
+        clnt_perror(nfsclient, "nfs3_mknod");
         return;
     }
     if (cres->status != NFS3_OK)
